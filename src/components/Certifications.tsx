@@ -77,10 +77,10 @@ const Certifications: React.FC<CertificationsProps> = ({ onOpenCert }) => {
           <div 
             className="cert-card" 
             style={{ cursor: 'pointer' }} 
-            onClick={() => onOpenCert('img/171033285.jpg')}
+            onClick={() => onOpenCert('/frontend-portfolio-jm/img/171033285.jpg')}
             ref={(el) => { if (el) cardsRef.current[0] = el; }}
           >
-            <img src="img/171033285.jpg" alt="Certificado Udemy" className="cert-img" />
+            <img src="/frontend-portfolio-jm/img/171033285.jpg" alt="Certificado Udemy" className="cert-img" />
             <div className="cert-info">
               <h3>
                 <LocalizedText en="Programming Steps" es="Programación Primeros Pasos" fr="Premiers Pas" de="Programación Primeros Pasos" pt="Programación Primeros Pasos" />
@@ -91,10 +91,10 @@ const Certifications: React.FC<CertificationsProps> = ({ onOpenCert }) => {
           <div 
             className="cert-card" 
             style={{ cursor: 'pointer' }} 
-            onClick={() => onOpenCert('img/image.png')}
+            onClick={() => onOpenCert('/frontend-portfolio-jm/img/image.png')}
             ref={(el) => { if (el) cardsRef.current[1] = el; }}
           >
-            <img src="img/image.png" alt="Certificado Platzi" className="cert-img" />
+            <img src="/frontend-portfolio-jm/img/image.png" alt="Certificado Platzi" className="cert-img" />
             <div className="cert-info">
               <h3>
                 <LocalizedText en="Basic Programming" es="Programación Básica" fr="Programmation de Base" de="Programación Básica" pt="Programación Básica" />
@@ -105,10 +105,10 @@ const Certifications: React.FC<CertificationsProps> = ({ onOpenCert }) => {
           <div 
             className="cert-card" 
             style={{ cursor: 'pointer' }} 
-            onClick={() => onOpenCert('img/react.jpg')}
+            onClick={() => onOpenCert('/frontend-portfolio-jm/img/react.jpg')}
             ref={(el) => { if (el) cardsRef.current[2] = el; }}
           >
-            <img src="img/react.jpg" alt="Certificado React" className="cert-img" />
+            <img src="/frontend-portfolio-jm/img/react.jpg" alt="Certificado React" className="cert-img" />
             <div className="cert-info">
               <h3>
                 <LocalizedText en="React: From zero to expert" es="React: De cero a experto" fr="React: De zéro à expert" de="React: Von Null zum Experten" pt="React: Do zero a especialista" />

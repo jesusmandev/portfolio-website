@@ -51,7 +51,7 @@ const AppContent: React.FC = () => {
       audioRef.current.volume = 0.3;
       audioRef.current.play()
         .then(() => setIsPlaying(true))
-        .catch((e) => console.log('Audio tracking interaction:', e));
+        .catch((error: unknown) => console.log('Audio tracking interaction:', error));
     }
   };
 
@@ -60,7 +60,7 @@ const AppContent: React.FC = () => {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play().catch(e => console.log(e));
+        audioRef.current.play().catch((error: unknown) => console.log(error));
       }
       setIsPlaying(!isPlaying);
     }
@@ -71,7 +71,7 @@ const AppContent: React.FC = () => {
       <CursorParticles />
       <audio 
         ref={audioRef} 
-        src="MUSIC/AhaTik_original sound_b1ec51c7-46db-4b65-b9d8-dbdf202e6911.mp3" 
+        src="/frontend-portfolio-jm/MUSIC/AhaTik_original sound_b1ec51c7-46db-4b65-b9d8-dbdf202e6911.mp3" 
         onEnded={() => setIsPlaying(false)}
       />
       
@@ -83,7 +83,7 @@ const AppContent: React.FC = () => {
           <Hero onDownloadCV={() => setIsCVModalOpen(true)} />
           <About />
           <Skills />
-          <Certifications onOpenCert={(src) => setCertModalConfig({ isOpen: true, src })} />
+          <Certifications onOpenCert={(src: string) => setCertModalConfig({ isOpen: true, src })} />
           <Projects />
           <Contact />
           <Footer />

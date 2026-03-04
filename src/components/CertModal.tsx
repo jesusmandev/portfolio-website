@@ -14,15 +14,15 @@ const CertModal: React.FC<CertModalProps> = ({ isOpen, onClose, imageSrc }) => {
 
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('keydown', handleKeyDown as EventListener);
     } else {
       document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown as EventListener);
     }
 
     return () => {
       document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown as EventListener);
     };
   }, [isOpen, onClose]);
 

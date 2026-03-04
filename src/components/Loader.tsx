@@ -45,23 +45,23 @@ const Loader: React.FC<LoaderProps> = ({ onComplete }) => {
         setIsIdle(true);
       }, 2000);
 
-      const handleStart = (e?: KeyboardEvent | MouseEvent) => {
+      const handleStart = (e?: Event | KeyboardEvent | MouseEvent) => {
         if (e && e.type === 'keydown' && (e as KeyboardEvent).key !== 'Enter') {
           return;
         }
         clearTimeout(idleTimeout);
         onComplete();
-        document.body.removeEventListener('click', handleStart);
-        document.removeEventListener('keydown', handleStart);
+        document.body.removeEventListener('click', handleStart as EventListener);
+        document.removeEventListener('keydown', handleStart as EventListener);
       };
 
-      document.body.addEventListener('click', handleStart, { once: true });
-      document.addEventListener('keydown', handleStart);
+      document.body.addEventListener('click', handleStart as EventListener, { once: true });
+      document.addEventListener('keydown', handleStart as EventListener);
 
       return () => {
         clearTimeout(idleTimeout);
-        document.body.removeEventListener('click', handleStart);
-        document.removeEventListener('keydown', handleStart);
+        document.body.removeEventListener('click', handleStart as EventListener);
+        document.removeEventListener('keydown', handleStart as EventListener);
       };
     }
   }, [isCompleted, onComplete]);

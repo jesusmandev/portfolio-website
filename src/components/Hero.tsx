@@ -104,7 +104,7 @@ const Hero: React.FC<HeroProps> = ({ onDownloadCV }) => {
 
       <div className="hero-image-wrap floating" id="hero-img-wrap">
         <div className="hero-img-glow"></div>
-        <img src="img/Adobe Express - file (1).png" alt="Developer" className="hero-img" />
+        <img src="/frontend-portfolio-jm/img/Adobe Express - file (1).png" alt="Developer" className="hero-img" />
       </div>
     </section>
   );
