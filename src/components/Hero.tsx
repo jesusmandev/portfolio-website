@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage, LocalizedText } from '../hooks/useLanguage';
+import heroImg from '../assets/img/hero-dev.png';
 
 interface HeroProps {
   onDownloadCV: () => void;
@@ -104,7 +105,7 @@ const Hero: React.FC<HeroProps> = ({ onDownloadCV }) => {
 
       <div className="hero-image-wrap floating" id="hero-img-wrap">
         <div className="hero-img-glow"></div>
-        <img src="/frontend-portfolio-jm/img/Adobe Express - file (1).png" alt="Developer" className="hero-img" />
+        <img src={heroImg} alt="Developer" className="hero-img" />
       </div>
     </section>
   );

@@ -12,6 +12,7 @@ import CertModal from './components/CertModal';
 import CVModal from './components/CVModal';
 import { LanguageProvider } from './hooks/useLanguage';
 import { CursorParticles } from './hooks/useCursor';
+import bgMusic from './assets/music/bg-music.mp3';
 import './index.css';
 
 const AppContent: React.FC = () => {
@@ -21,7 +22,6 @@ const AppContent: React.FC = () => {
   const [certModalConfig, setCertModalConfig] = useState({ isOpen: false, src: '' });
 
   const audioRef = React.useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     // Handling section scrolling for navbar active state
@@ -50,19 +50,7 @@ const AppContent: React.FC = () => {
     if (audioRef.current) {
       audioRef.current.volume = 0.3;
       audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch((error: unknown) => console.log('Audio tracking interaction:', error));
-    }
-  };
-
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch((error: unknown) => console.log(error));
-      }
-      setIsPlaying(!isPlaying);
+        .catch((error: unknown) => console.log('Audio playback error:', error));
     }
   };
 
@@ -71,8 +59,7 @@ const AppContent: React.FC = () => {
       <CursorParticles />
       <audio 
         ref={audioRef} 
-        src="/frontend-portfolio-jm/MUSIC/AhaTik_original sound_b1ec51c7-46db-4b65-b9d8-dbdf202e6911.mp3" 
-        onEnded={() => setIsPlaying(false)}
+        src={bgMusic}
       />
       
       {isLoading ? (
@@ -97,30 +84,6 @@ const AppContent: React.FC = () => {
             isOpen={isCVModalOpen} 
             onClose={() => setIsCVModalOpen(false)} 
           />
-
-          <button 
-            className="audio-toggle-btn" 
-            onClick={togglePlay}
-            style={{
-              position: 'fixed',
-              bottom: '20px',
-              right: '20px',
-              zIndex: 9999,
-              background: 'rgba(5, 5, 5, 0.7)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              color: '#fff',
-              width: '45px',
-              height: '45px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              backdropFilter: 'blur(5px)'
-            }}
-          >
-            {isPlaying ? '⏸️' : '▶️'}
-          </button>
         </div>
       )}
     </>

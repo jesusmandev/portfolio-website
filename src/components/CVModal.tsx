@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { LocalizedText } from '../hooks/useLanguage';
+import cvEs from '../assets/curriculum/cv-es.pdf';
+import cvEn from '../assets/curriculum/cv-en.pdf';
 
 interface CVModalProps {
   isOpen: boolean;
@@ -41,10 +43,10 @@ const CVModal: React.FC<CVModalProps> = ({ isOpen, onClose }) => {
           />
         </h3>
         <div className="cv-options">
-          <a href="/frontend-portfolio-jm/CURRICULUM/curriculum-español.pdf" target="_blank" rel="noopener noreferrer" className="btn btn-primary cv-option-btn" onClick={onClose}>
+          <a href={cvEs} target="_blank" rel="noopener noreferrer" className="btn btn-primary cv-option-btn" onClick={onClose}>
             <LocalizedText en="Spanish CV" es="CV en Español" fr="CV en Espagnol" de="CV auf Spanisch" pt="CV em Espanhol" />
           </a>
-          <a href="/frontend-portfolio-jm/CURRICULUM/curriculum-ingles.pdf" target="_blank" rel="noopener noreferrer" className="btn btn-outline cv-option-btn" onClick={onClose}>
+          <a href={cvEn} target="_blank" rel="noopener noreferrer" className="btn btn-outline cv-option-btn" onClick={onClose}>
             <LocalizedText en="English CV" es="CV en Inglés" fr="CV en Anglais" de="CV auf Englisch" pt="CV em Inglês" />
           </a>
         </div>
