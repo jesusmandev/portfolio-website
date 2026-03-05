@@ -2,7 +2,7 @@
 
 Bienvenido a mi portafolio web profesional. Este proyecto es una vitrina de mis habilidades como Desarrollador Frontend, diseñado con una estética moderna, minimalista y dinámica.
 
-🔗 **Demo en vivo**: [https://jesusmandev.github.io/frontend-portfolio-jm/](https://jesusmandev.github.io/frontend-portfolio-jm/)
+🔗 **Demo en vivo**: [https://jesusmandev.github.io/portfolio-website/](https://jesusmandev.github.io/portfolio-website/)
 
 ## 🚀 Características Principales
 
