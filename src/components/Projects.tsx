@@ -140,6 +140,15 @@ const Projects: React.FC = () => {
       title: <LocalizedText en="Music Player" es="Reproductor de Música" fr="Lecteur de Musique" de="Musikplayer" pt="Reprodutor de Música" />,
       desc: <LocalizedText en="Modern music player with full controls and song visualization." es="Reproductor de música moderno con controles completos y visualización de canciones." fr="Lecteur de musique moderne avec contrôles complets et visualisation des chansons." de="Moderner Musikplayer mit vollständiger Steuerung und Songvisualisierung." pt="Reprodutor de música moderno com controles completos e visualização de músicas." />,
       tech: ['HTML', 'CSS', 'JS']
+    },
+    {
+      id: '10',
+      url: 'https://jesusmandev.github.io/GIF-app/',
+      featured: false,
+      tag: 'App',
+      title: <LocalizedText en="GIF App" es="Aplicación de GIFs" fr="App GIF" de="GIF App" pt="App de GIFs" />,
+      desc: <LocalizedText en="Application to search and view GIFs using an external API." es="Aplicación para buscar y visualizar GIFs consumiendo una API externa." fr="Application pour rechercher et visualiser des GIFs à l'aide d'une API externe." de="Anwendung zum Suchen und Anzeigen von GIFs über eine externe API." pt="Aplicativo para buscar e visualizar GIFs usando uma API externa." />,
+      tech: ['HTML', 'CSS', 'JS', 'API']
     }
   ];
 
