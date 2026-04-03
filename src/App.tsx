@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Loader from './components/Loader';
+import ScrollReveal from './components/ScrollReveal';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -24,26 +25,48 @@ const AppContent: React.FC = () => {
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    // Handling section scrolling for navbar active state
-    const sections = document.querySelectorAll('section[id]');
-    
+    if (isLoading) return;
+
+    window.scrollTo(0, 0);
+
     const handleScroll = () => {
-      let current = '';
-      sections.forEach(section => {
-        const sectionTop = (section as HTMLElement).offsetTop;
-        if (window.scrollY >= sectionTop - 120) {
-          current = section.getAttribute('id') || '';
+      const sections = Array.from(document.querySelectorAll('section[id]'));
+      if (sections.length === 0) return;
+
+      // Check if user scrolled to the absolute bottom (and page has actually rendered)
+      const isAtBottom = 
+        Math.ceil(window.innerHeight + window.scrollY) >= document.body.offsetHeight - 20 &&
+        document.body.offsetHeight > window.innerHeight;
+        
+      if (isAtBottom) {
+        setActiveSection(sections[sections.length - 1].id);
+        return;
+      }
+
+      const trigger = window.innerHeight * 0.3; // 30% from top
+      let currentId = sections[0].id; // Fallback to first section
+
+      for (const section of sections) {
+        const rect = section.getBoundingClientRect();
+        if (rect.height > 0 && rect.bottom >= trigger) {
+          currentId = section.id;
+          break;
         }
-      });
-      setActiveSection(current);
+      }
+      
+      setActiveSection(currentId);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     
+    // Initial check (delay slightly so DOM expands)
+    const timer = setTimeout(handleScroll, 100);
+
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [isLoading]);
 
   const handleStartApp = () => {
     setIsLoading(false);
@@ -56,6 +79,7 @@ const AppContent: React.FC = () => {
 
   return (
     <>
+
       <CursorParticles />
       <audio 
         ref={audioRef} 
@@ -65,14 +89,30 @@ const AppContent: React.FC = () => {
       {isLoading ? (
         <Loader onComplete={handleStartApp} />
       ) : (
-        <div className="main-content show">
+        <div className="main-content show overflow-x-hidden">
           <Navbar currentSection={activeSection} />
           <Hero onDownloadCV={() => setIsCVModalOpen(true)} />
-          <About />
-          <Skills />
-          <Certifications onOpenCert={(src: string) => setCertModalConfig({ isOpen: true, src })} />
-          <Projects />
-          <Contact />
+          
+          <ScrollReveal direction="left">
+            <About />
+          </ScrollReveal>
+          
+          <ScrollReveal direction="right">
+            <Skills />
+          </ScrollReveal>
+          
+          <ScrollReveal direction="left">
+            <Certifications onOpenCert={(src: string) => setCertModalConfig({ isOpen: true, src })} />
+          </ScrollReveal>
+          
+          <ScrollReveal direction="right">
+            <Projects />
+          </ScrollReveal>
+          
+          <ScrollReveal direction="left">
+            <Contact />
+          </ScrollReveal>
+          
           <Footer />
 
           <CertModal 
