@@ -28,10 +28,7 @@ const Skills: React.FC = () => {
           (entry.target as HTMLElement).style.opacity = '1';
           (entry.target as HTMLElement).style.transform = 'translateY(0) scale(1)';
           entry.target.classList.add('animated');
-        } else {
-          (entry.target as HTMLElement).style.opacity = '0';
-          (entry.target as HTMLElement).style.transform = 'translateY(30px) scale(0.95)';
-          entry.target.classList.remove('animated');
+          cardObserver.unobserve(entry.target); // <--- optimization!
         }
       });
     }, {
@@ -138,8 +135,7 @@ const Skills: React.FC = () => {
                     style={{
                        width: 'clamp(65px, 20vw, 130px)',
                        height: 'clamp(65px, 20vw, 130px)',
-                       background: isFront ? 'rgba(30, 41, 59, 0.95)' : 'rgba(30, 41, 59, 0.7)',
-                       backdropFilter: 'blur(12px)',
+                       background: isFront ? 'rgba(30, 41, 59, 1)' : 'rgba(30, 41, 59, 0.8)',
                        border: isFront ? '2px solid rgba(245, 166, 35, 0.6)' : '1px solid rgba(255, 255, 255, 0.1)',
                        boxShadow: isFront ? '0 0 35px rgba(245, 166, 35, 0.3)' : '0 0 15px rgba(0,0,0,0.5)',
                     }}

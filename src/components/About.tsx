@@ -40,7 +40,7 @@ const About: React.FC = () => {
         <motion.div
            initial={{ opacity: 0, y: 30 }}
            whileInView={{ opacity: 1, y: 0 }}
-           viewport={{ margin: "-100px" }} // Re-animates when scrolling up/down
+           viewport={{ margin: "-100px", once: true }} // Re-animates when scrolling up/down
            transition={{ duration: 0.8 }}
            className="text-center mb-16 lg:mb-32 pb-4 lg:pb-0"
         >
@@ -58,7 +58,7 @@ const About: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: -80, rotateY: -20 }}
             whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
-            viewport={{ margin: "-100px" }}
+            viewport={{ margin: "-100px", once: true }}
             transition={{ duration: 1, type: "spring", bounce: 0.4 }}
             className="flex justify-center perspective-[1200px] lg:col-span-5"
           >
@@ -92,7 +92,7 @@ const About: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: 80 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ margin: "-100px" }}
+            viewport={{ margin: "-100px", once: true }}
             transition={{ duration: 1, delay: 0.2, type: "spring", bounce: 0.4 }}
             className="flex flex-col space-y-8 lg:col-span-7"
           >
@@ -148,7 +148,7 @@ const About: React.FC = () => {
                       href={stat.href!}
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ margin: "-50px" }}
+                      viewport={{ margin: "-50px", once: true }}
                       transition={{ duration: 0.6, delay: 0.4 + (i * 0.1) }}
                       className={`${baseClass} ${hoverClass}`}
                     >

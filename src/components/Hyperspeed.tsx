@@ -962,7 +962,7 @@ class App {
       alpha: true
     });
     this.renderer.setSize(initW, initH, false);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
     this.composer = new EffectComposer(this.renderer);
     container.appendChild(this.renderer.domElement);

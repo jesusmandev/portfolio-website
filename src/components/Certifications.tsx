@@ -34,9 +34,7 @@ const Certifications: React.FC<CertificationsProps> = ({ onOpenCert }) => {
         if (entry.isIntersecting) {
           (entry.target as HTMLElement).style.opacity = '1';
           (entry.target as HTMLElement).style.transform = 'translateY(0) scale(1)';
-        } else {
-          (entry.target as HTMLElement).style.opacity = '0';
-          (entry.target as HTMLElement).style.transform = 'translateY(30px) scale(0.95)';
+          cardObserver.unobserve(entry.target);
         }
       });
     }, {
