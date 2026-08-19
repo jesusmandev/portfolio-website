@@ -212,7 +212,8 @@ export class TimeCycle {
 
     initAudio(listener) {
         this.galloSound = new THREE.Audio(listener);
-        this.audioLoader.load('/audios/gallo/gallo.mp3', (buffer) => {
+        const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
+        this.audioLoader.load(`${baseUrl}/audios/gallo/gallo.mp3`, (buffer) => {
             if (this.galloSound) {
                 this.galloSound.setBuffer(buffer);
                 this.galloSound.setVolume(0.8);

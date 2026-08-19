@@ -354,11 +354,12 @@ export class Speaker3D {
     // ──────────────────────────────────────────────────────────────────
 
     _loadAudio() {
+        const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
         this._tracks = [
-            { name: 'After the Fair', url: encodeURI('/audios/speaker/After_the_Fair.mp3') },
-            { name: 'Fire Under My Feet', url: encodeURI('/audios/speaker/Fuego_bajo_mis_pies.mp3') },
-            { name: 'Midnight at the Plaza', url: encodeURI('/audios/speaker/Midnight_at_the_Plaza (1).mp3') },
-            { name: 'Mountains Under the Moon', url: encodeURI('/audios/speaker/Montañas_bajo_la_luna.mp3') }
+            { name: 'After the Fair', url: encodeURI(`${baseUrl}/audios/speaker/After_the_Fair.mp3`) },
+            { name: 'Fire Under My Feet', url: encodeURI(`${baseUrl}/audios/speaker/Fuego_bajo_mis_pies.mp3`) },
+            { name: 'Midnight at the Plaza', url: encodeURI(`${baseUrl}/audios/speaker/Midnight_at_the_Plaza (1).mp3`) },
+            { name: 'Mountains Under the Moon', url: encodeURI(`${baseUrl}/audios/speaker/Montañas_bajo_la_luna.mp3`) }
         ];
         this._currentTrackIdx = 0;
         this._audioBuffers = {};

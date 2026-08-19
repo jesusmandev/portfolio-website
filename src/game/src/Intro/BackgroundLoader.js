@@ -23,7 +23,7 @@ const WORLD_ASSETS = [
     { url: '/personaje/model.glb',                    weight:  6 },  // smaller first → game ready sooner
     { url: '/base/Base.glb',                          weight:  1 },
     { url: '/estatua/estatua-v1.glb',                 weight:  4 },  // central park statue (meshopt)
-    { url: '/big tree/BIGTREE2-COMPRESSED.glb',       weight:  3 },  // decorative big tree
+    { url: '/big tree/ARBOL Gigantesco.glb',          weight:  3 },  // decorative big tree
 ];
 
 const TOTAL_WEIGHT = WORLD_ASSETS.reduce((s, a) => s + a.weight, 0);

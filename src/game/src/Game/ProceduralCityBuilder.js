@@ -489,10 +489,11 @@ export class ProceduralCityBuilder {
         if (AssetCache.has(BIG_TREE_URL)) {
             _place(AssetCache.get(BIG_TREE_URL));
         } else {
+            const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
             const loader = new GLTFLoader();
             loader.setMeshoptDecoder(MeshoptDecoder);
             loader.load(
-                BIG_TREE_URL,
+                `${baseUrl}${BIG_TREE_URL}`,
                 (gltf) => { AssetCache.set(BIG_TREE_URL, gltf); _place(gltf); },
                 undefined,
                 (err) => console.error('[ProceduralCityBuilder] Error cargando big tree:', err)
@@ -1503,10 +1504,11 @@ export class ProceduralCityBuilder {
         if (AssetCache.has(STATUE_URL)) {
             _placeStatue(AssetCache.get(STATUE_URL));
         } else {
+            const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
             const statueLoader = new GLTFLoader();
             statueLoader.setMeshoptDecoder(MeshoptDecoder);
             statueLoader.load(
-                STATUE_URL,
+                `${baseUrl}${STATUE_URL}`,
                 (gltf) => { AssetCache.set(STATUE_URL, gltf); _placeStatue(gltf); },
                 undefined,
                 (err) => console.error('[ProceduralCityBuilder] Error cargando estatua.glb:', err)

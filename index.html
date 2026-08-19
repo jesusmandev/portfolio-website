@@ -4,6 +4,7 @@
     <script>
       (function() {
         function sendLog(type, args) {
+          if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') return;
           const message = Array.from(args).map(arg => {
             if (typeof arg === 'object') {
               try { return JSON.stringify(arg); } catch(e) { return String(arg); }

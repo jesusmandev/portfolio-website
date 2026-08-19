@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-const cvEs = '/cv/CV_JESUS MARTINEZ_ES.pdf';
-const cvEn = '/cv/CV_JESUS_MARTINEZ_EN.pdf';
+const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
+const cvEs = `${baseUrl}/cv/CV_JESUS MARTINEZ_ES.pdf`;
+const cvEn = `${baseUrl}/cv/CV_JESUS_MARTINEZ_EN.pdf`;
 
 const CVModal = ({ isOpen: propIsOpen, onClose: propOnClose }) => {
   const [isNear, setIsNear] = useState(false);

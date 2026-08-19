@@ -267,8 +267,9 @@ export class PhysicsCharacter {
 
     loadModel() {
         const loader = new GLTFLoader();
+        const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
 
-        loader.load('/personaje/model.glb', (gltf) => {
+        loader.load(`${baseUrl}/personaje/model.glb`, (gltf) => {
             const model = gltf.scene;
 
             // Ocultar temporalmente hasta que los shaders compilen
@@ -370,7 +371,7 @@ export class PhysicsCharacter {
             this.characterController.enableSnapToGround(2.5);
 
             // Cargar y registrar animaciones desde animations.glb
-            loader.load('/personaje/animations.glb', (animGltf) => {
+            loader.load(`${baseUrl}/personaje/animations.glb`, (animGltf) => {
                 if (animGltf.animations && animGltf.animations.length > 0) {
                     animGltf.animations.forEach(clip => {
                         this.actions[clip.name] = this.mixer.clipAction(clip);

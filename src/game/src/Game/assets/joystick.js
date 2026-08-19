@@ -397,7 +397,8 @@ export class JoystickInteraction {
         // Cargar ÚNICA Y EXCLUSIVAMENTE el modelo GLB original con la ruta exacta de la carpeta public/Joystick/
         const loader = new GLTFLoader();
         loader.setMeshoptDecoder(MeshoptDecoder);
-        const glbUrl = encodeURI('/Joystick/Videogame Controller.glb');
+        const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
+        const glbUrl = encodeURI(`${baseUrl}/Joystick/Videogame Controller.glb`);
 
         loader.load(
             glbUrl,

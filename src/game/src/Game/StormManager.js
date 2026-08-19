@@ -161,12 +161,14 @@ export class StormManager {
         if (this.audioInitialized) return;
         this.audioInitialized = true;
 
+        const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
+
         this.rainSound = new THREE.Audio(listener);
         this.windSound = new THREE.Audio(listener);
         this.thunderSound = new THREE.Audio(listener);
 
         // Cargar audio de lluvia local
-        this.audioLoader.load('/audios/agua/lluvia.mp3', (buffer) => {
+        this.audioLoader.load(`${baseUrl}/audios/agua/lluvia.mp3`, (buffer) => {
             this.rainSound.setBuffer(buffer);
             this.rainSound.setLoop(true);
             this.rainSound.setVolume(0.0);
@@ -176,7 +178,7 @@ export class StormManager {
         });
 
         // Cargar audio de viento local
-        this.audioLoader.load('/audios/viento/viento.wav', (buffer) => {
+        this.audioLoader.load(`${baseUrl}/audios/viento/viento.wav`, (buffer) => {
             this.windSound.setBuffer(buffer);
             this.windSound.setLoop(true);
             this.windSound.setVolume(0.0);
@@ -186,7 +188,7 @@ export class StormManager {
         });
 
         // Cargar audio de trueno (rayo) local
-        this.audioLoader.load('/audios/rayo/thunder.mp3', (buffer) => {
+        this.audioLoader.load(`${baseUrl}/audios/rayo/thunder.mp3`, (buffer) => {
             this.thunderSound.setBuffer(buffer);
             this.thunderSound.setVolume(1.0);
         });
