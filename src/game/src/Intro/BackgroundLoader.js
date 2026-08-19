@@ -73,7 +73,7 @@ export class BackgroundLoader {
 
         const asset = WORLD_ASSETS[index];
         const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, ''); // clean trailing /
-        const fullUrl = `${baseUrl}${asset.url}`;
+        const fullUrl = encodeURI(`${baseUrl}${asset.url}`);
 
         const loader = new GLTFLoader();
         loader.setMeshoptDecoder(MeshoptDecoder);

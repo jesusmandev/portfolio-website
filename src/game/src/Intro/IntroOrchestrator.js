@@ -29,6 +29,7 @@ export class IntroOrchestrator {
         this._rapierReady = false;
         this._assetsReady = false;
         this._gameReady   = false;
+        this._hasTimedOut = false;
     }
 
     // ----------------------------------------------------------------
@@ -61,6 +62,7 @@ export class IntroOrchestrator {
             // Timeout de seguridad: si a los 90 s no esta listo, entrar de todas formas
             const safetyTimer = setTimeout(() => {
                 console.warn('[Orchestrator] Timeout de seguridad alcanzado — entrando al juego.');
+                this._hasTimedOut = true;
                 resolve();
             }, MAX_WAIT_MS);
 
@@ -171,11 +173,13 @@ export class IntroOrchestrator {
         try { this._worldLoadingScreen?.hide(); } catch (_) {}
         this._worldLoadingScreen = null;
 
-        // solo reusamos el método que el propio flujo normal ya usa para revelar,
-        // envuelto en su propio try/catch por si también falla.
         try { this.transition?.fadeFromBlack?.(0.3); } catch (_) {}
 
         if (this.game) {
+            try { this.game.setPlayerMode('character'); } catch (_) {}
+            try { this.game.recreatePlayerEntity(); } catch (_) {}
+            try { this.game._camSnapped = false; } catch (_) {}
+            try { this.game._updateFollowCamera(); } catch (_) {}
             try { if (!this.game._renderStarted) this.game.startRender(); } catch (_) {}
             try { this.game.showCanvas(); } catch (_) {}
             try { this.game.enablePhysics(); } catch (_) {}
@@ -236,12 +240,17 @@ export class IntroOrchestrator {
                 
                 this._gameReady = true;
                 console.log('[Orchestrator] Game listo, personaje e hilos 100% instanciados.');
+                if (this._hasTimedOut) {
+                    console.log('[Orchestrator] Game listo tras timeout — revelando automáticamente.');
+                    this._recoverFromStartFailure();
+                }
             })
             .catch(err => {
-                // Si initAsync() falla por cualquier razon, marcamos como listo de todas formas
-                // para que el usuario pueda entrar al juego aunque sea parcialmente cargado.
                 console.error('[Orchestrator] Error en initAsync(), entrando al juego de todas formas:', err);
                 this._gameReady = true;
+                if (this._hasTimedOut) {
+                    this._recoverFromStartFailure();
+                }
             });
     }
 }
