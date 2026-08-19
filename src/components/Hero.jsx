@@ -19,7 +19,9 @@ const Hero = ({ onExplore }) => {
     };
   }, []);
 
-  // Load webp and draw the first frame to canvas (freezes the background animation)
+  // Draw the first frame of fondo.webp to canvas using a hidden <video> element.
+  // This allows the browser to stream the file instead of downloading the full 51 MB
+  // before it can decode even a single frame (which is what <img> does with animated webp).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -31,25 +33,55 @@ const Hero = ({ onExplore }) => {
     canvas.width = w;
     canvas.height = h;
 
-    const img = new Image();
-    img.onload = () => {
-      // Cover-fit: scale and center like background-size: cover
+    // Helper: cover-fit and draw a video/image element to the canvas
+    const drawCover = (source) => {
+      const srcW = source.videoWidth || source.naturalWidth;
+      const srcH = source.videoHeight || source.naturalHeight;
+      if (!srcW || !srcH) return;
       const canvasRatio = w / h;
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-
-      if (canvasRatio > imgRatio) {
-        sh = img.naturalWidth / canvasRatio;
-        sy = (img.naturalHeight - sh) / 2;
+      const srcRatio = srcW / srcH;
+      let sx = 0, sy = 0, sw = srcW, sh = srcH;
+      if (canvasRatio > srcRatio) {
+        sh = srcW / canvasRatio;
+        sy = (srcH - sh) / 2;
       } else {
-        sw = img.naturalHeight * canvasRatio;
-        sx = (img.naturalWidth - sw) / 2;
+        sw = srcH * canvasRatio;
+        sx = (srcW - sw) / 2;
       }
-
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+      ctx.drawImage(source, sx, sy, sw, sh, 0, 0, w, h);
       setCanvasReady(true);
     };
-    img.src = `${import.meta.env.BASE_URL}picture/fondo.webp`;
+
+    // Try video first (streams, first frame available almost immediately)
+    const vid = document.createElement('video');
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.preload = 'metadata'; // only fetch headers + first few KB
+    vid.src = `${import.meta.env.BASE_URL}picture/fondo.webp`;
+
+    // Draw as soon as the first frame is decoded
+    vid.addEventListener('loadeddata', () => {
+      drawCover(vid);
+      vid.src = ''; // release network connection — we only needed the first frame
+    }, { once: true });
+
+    // Fallback: if video element can't handle the webp (some mobile browsers),
+    // fall back to <img> after a short timeout.
+    const fallbackTimer = setTimeout(() => {
+      if (canvasRef.current && !canvas.dataset.ready) {
+        const img = new Image();
+        img.onload = () => { drawCover(img); };
+        img.src = `${import.meta.env.BASE_URL}picture/fondo.webp`;
+      }
+    }, 3000);
+
+    vid.addEventListener('loadeddata', () => clearTimeout(fallbackTimer), { once: true });
+    vid.load();
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      vid.src = '';
+    };
   }, []);
 
   const handleExplore = () => {
@@ -100,10 +132,16 @@ const Hero = ({ onExplore }) => {
         }}
       >
         {phase === 'cinematic' && (
-          <img
+          // Use <video> instead of <img> for the animated webp:
+          // browsers stream video progressively so it starts playing within ~1s
+          // instead of waiting for the full 51 MB download before showing anything.
+          <video
             key="webp-cinematic"
             src={`${import.meta.env.BASE_URL}picture/fondo.webp`}
-            alt=""
+            autoPlay
+            muted
+            playsInline
+            loop={false}
             style={{
               width: '100%',
               height: '100%',

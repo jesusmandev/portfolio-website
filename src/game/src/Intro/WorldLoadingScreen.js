@@ -417,10 +417,12 @@ export class WorldLoadingScreen {
         this._ring2.rotation.z = Math.PI / 6;
         this._scene.add(this._ring2);
 
-        this._clock = new THREE.Clock();
+        this._clock = new THREE.Timer();
+        this._clock.connect(document);  // timer ticks with the page visibility API
         const animate = () => {
             this._rafId = requestAnimationFrame(animate);
-            const elapsed = this._clock.getElapsedTime();
+            this._clock.update();
+            const elapsed = this._clock.getElapsed();
 
             if (this._gem)      { this._gem.rotation.y += 0.008; this._gem.rotation.x = Math.sin(elapsed * 0.5) * 0.3; }
             if (this._innerGem) { this._innerGem.rotation.y -= 0.005; this._innerGem.rotation.z = Math.cos(elapsed * 0.4) * 0.2; }

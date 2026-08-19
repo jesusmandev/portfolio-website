@@ -102,6 +102,14 @@ export class IntroOrchestrator {
 
 
         // 5-9. Render startup, transition, and portal.
+        // Safety guard: if the 90s timeout fired before _tryInitGame() completed,
+        // this.game may still be null — recover gracefully instead of crashing.
+        if (!this.game) {
+            console.warn('[Orchestrator] Game not initialized after timeout — recovering.');
+            this._recoverFromStartFailure();
+            return;
+        }
+
         try {
             // 5. Precalentamiento del renderizador en segundo plano para evitar tironeo (lag)
             this.game.setPlayerMode('character');
