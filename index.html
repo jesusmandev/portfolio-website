@@ -1,18 +1,65 @@
 <!doctype html>
 <html lang="es">
   <head>
+    <script>
+      (function() {
+        function sendLog(type, args) {
+          const message = Array.from(args).map(arg => {
+            if (typeof arg === 'object') {
+              try { return JSON.stringify(arg); } catch(e) { return String(arg); }
+            }
+            return String(arg);
+          }).join(' ');
+          
+          fetch('/__browser_log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, message })
+          }).catch(() => {});
+        }
+
+        const orgLog = console.log;
+        const orgWarn = console.warn;
+        const orgError = console.error;
+
+        console.log = function() {
+          orgLog.apply(console, arguments);
+          sendLog('log', arguments);
+        };
+        console.warn = function() {
+          orgWarn.apply(console, arguments);
+          sendLog('warn', arguments);
+        };
+        console.error = function() {
+          orgError.apply(console, arguments);
+          sendLog('error', arguments);
+        };
+
+        window.addEventListener('error', function(event) {
+          sendLog('error', [event.message, event.filename, event.lineno]);
+        });
+        window.addEventListener('unhandledrejection', function(event) {
+          sendLog('error', ['Unhandled promise rejection:', event.reason]);
+        });
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="google-site-verification" content="tsicsoMHPMF0nw2xFYGXJPff1oD2NPQwz71k9hSk_r4" />
-    <link rel="icon" type="image/jpeg" href="/img/vite.jpeg" />
+    <link rel="icon" type="image/png" href="/picture 3/html.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
-    <title>Jesus Martinez | Desarrollador Frontend</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>jesus's portfolio 🏃‍♂️ 🏙 🏕</title>
   </head>
   <body>
+    <!-- Canvas del juego (z-index: 0, empieza oculto) -->
+    <div id="canvas-container"></div>
+    <!-- Overlay de transición (fade entre intro y juego) -->
+    <div id="transition-overlay"></div>
+
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
