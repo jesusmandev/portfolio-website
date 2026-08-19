@@ -215,24 +215,36 @@ function getLeafMaterial() {
     return _leafMat;
 }
 
-function applyWindShader(mat) {
+function applyWindShader(mat, simplifiedWind = false) {
     mat.onBeforeCompile = (shader) => {
         shader.uniforms.uTime = { value: 0 };
         mat.userData.shader   = shader;
 
         shader.vertexShader = `uniform float uTime;\n` + shader.vertexShader;
 
-        shader.vertexShader = shader.vertexShader.replace(
-            '#include <begin_vertex>',
-            `
-            #include <begin_vertex>
-            float swayNoise = fract(sin(dot(position.xy, vec2(12.9898, 78.233))) * 43758.5453);
-            float sway = sin(uTime * 1.5 + position.x * 0.5 + position.z * 0.5 + swayNoise * 6.28) * 0.04;
-            transformed.x += sway;
-            transformed.z += sway * 0.6;
-            transformed.y += sin(uTime * 1.2 + position.x * 0.3 + swayNoise * 6.28) * 0.015;
-            `
-        );
+        if (simplifiedWind) {
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                `
+                #include <begin_vertex>
+                float sway = sin(uTime * 1.5 + position.x * 0.4 + position.z * 0.4) * 0.03;
+                transformed.x += sway;
+                transformed.z += sway * 0.6;
+                `
+            );
+        } else {
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                `
+                #include <begin_vertex>
+                float swayNoise = fract(sin(dot(position.xy, vec2(12.9898, 78.233))) * 43758.5453);
+                float sway = sin(uTime * 1.5 + position.x * 0.5 + position.z * 0.5 + swayNoise * 6.28) * 0.04;
+                transformed.x += sway;
+                transformed.z += sway * 0.6;
+                transformed.y += sin(uTime * 1.2 + position.x * 0.3 + swayNoise * 6.28) * 0.015;
+                `
+            );
+        }
     };
 }
 
@@ -278,9 +290,13 @@ export function createPalmManager(scene, parent, maxPalms = 400, opts = {}) {
     }
 
     // Materials (shared between all types)
+    const tierCfg = opts.tierConfig || null;
+    const simplifiedWind = tierCfg?.simplifiedWind ?? false;
+    const castFoliageShadows = tierCfg?.castFoliageShadows ?? false;
+
     const trunkMat = getTrunkMaterial();
     const leafMat  = getLeafMaterial();
-    applyWindShader(leafMat);
+    applyWindShader(leafMat, simplifiedWind);
 
     if (opts.cityBarkMaterials) opts.cityBarkMaterials.add(trunkMat);
     if (opts.cityLeafMaterials) opts.cityLeafMaterials.add(leafMat);
@@ -301,7 +317,7 @@ export function createPalmManager(scene, parent, maxPalms = 400, opts = {}) {
     const crownMeshes = [];
     for (let t = 0; t < TYPE_COUNT; t++) {
         const mesh = new THREE.InstancedMesh(crownGeos[t], leafMat, maxPalms);
-        mesh.castShadow    = true;
+        mesh.castShadow    = castFoliageShadows;
         mesh.receiveShadow = true;
         mesh.frustumCulled = false;
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

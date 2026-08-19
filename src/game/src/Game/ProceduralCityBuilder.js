@@ -716,11 +716,13 @@ export class ProceduralCityBuilder {
     _initTreeInstances() {
         this._treeManager = createTreeManager(this.scene, this._cityGroup, 450, {
             cityLeafMaterials: this.cityLeafMaterials,
-            cityBarkMaterials: this.cityBarkMaterials
+            cityBarkMaterials: this.cityBarkMaterials,
+            tierConfig:        this.tierConfig
         });
         this._palmManager = createPalmManager(this.scene, this._cityGroup, 300, {
             cityLeafMaterials: this.cityLeafMaterials,
-            cityBarkMaterials: this.cityBarkMaterials
+            cityBarkMaterials: this.cityBarkMaterials,
+            tierConfig:        this.tierConfig
         });
     }
 

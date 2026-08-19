@@ -63,12 +63,17 @@ export function detectDeviceTier() {
 export const TIER_CONFIG = {
     low: {
         tierName: 'Gama Baja (Móvil Entrada)',
-        pixelRatio: 1.0,
+        pixelRatio: 1.5,
         shadows: false,
         shadowMapSize: 512,
         maxGrassBlades: 8000,
         treeDensityFactor: 0.35,
         bushDensityFactor: 0.40,
+        foliageClumpFactor: 0.22,
+        foliagePlanesFactor: 0.25,
+        planeSizeMult: 1.30,
+        castFoliageShadows: false,
+        simplifiedWind: true,
     },
     medium: {
         tierName: 'Gama Media (Móvil/Tablet)',
@@ -78,6 +83,11 @@ export const TIER_CONFIG = {
         maxGrassBlades: 25000,
         treeDensityFactor: 0.65,
         bushDensityFactor: 0.70,
+        foliageClumpFactor: 0.40,
+        foliagePlanesFactor: 0.45,
+        planeSizeMult: 1.15,
+        castFoliageShadows: false,
+        simplifiedWind: true,
     },
     high: {
         tierName: 'Gama Alta (Desktop/Mac)',
@@ -87,6 +97,11 @@ export const TIER_CONFIG = {
         maxGrassBlades: 70000,
         treeDensityFactor: 1.0,
         bushDensityFactor: 1.0,
+        foliageClumpFactor: 1.0,
+        foliagePlanesFactor: 1.0,
+        planeSizeMult: 1.0,
+        castFoliageShadows: true,
+        simplifiedWind: false,
     }
 };
 

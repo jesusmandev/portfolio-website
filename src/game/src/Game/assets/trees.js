@@ -148,7 +148,7 @@ export function buildFoliageGeometry(count = 32, planeSize = 0.38, rng) {
     return new THREE.PlaneGeometry(planeSize, planeSize);
 }
 
-export function buildFoliageMaterial(darkColor, lightColor, foliageTexture, lightDirection) {
+export function buildFoliageMaterial(darkColor, lightColor, foliageTexture, lightDirection, simplifiedWind = false) {
     const leafTex = (typeof darkColor === 'string')
         ? createLeafTexture(darkColor, lightColor)
         : createLeafTexture('#1B5E20', '#2E7D32');
@@ -176,21 +176,35 @@ export function buildFoliageMaterial(darkColor, lightColor, foliageTexture, ligh
             uniform float uWindStrength;
         ` + shader.vertexShader;
 
-        shader.vertexShader = shader.vertexShader.replace(
-            '#include <begin_vertex>',
-            `
-            #include <begin_vertex>
-            if (uWindStrength > 0.001) {
-                float windFreq = 2.2 + uWindStrength * 3.5;
-                float swayNoise = fract(sin(dot(position.xy, vec2(12.9898, 78.233))) * 43758.5453);
-                float swayAmp = uWindStrength * 0.38;
-                float sway = sin(uWindTime * windFreq + position.x * 0.5 + position.z * 0.5 + swayNoise * 6.28) * swayAmp;
-                transformed.x += sway;
-                transformed.z += sway * 0.7;
-                transformed.y += sin(uWindTime * (windFreq * 0.7) + position.x * 0.3 + swayNoise * 6.28) * (swayAmp * 0.22);
-            }
-            `
-        );
+        if (simplifiedWind) {
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                `
+                #include <begin_vertex>
+                if (uWindStrength > 0.001) {
+                    float sway = sin(uWindTime * 2.2 + position.x * 0.4 + position.z * 0.4) * (uWindStrength * 0.2);
+                    transformed.x += sway;
+                    transformed.z += sway * 0.6;
+                }
+                `
+            );
+        } else {
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                `
+                #include <begin_vertex>
+                if (uWindStrength > 0.001) {
+                    float windFreq = 2.2 + uWindStrength * 3.5;
+                    float swayNoise = fract(sin(dot(position.xy, vec2(12.9898, 78.233))) * 43758.5453);
+                    float swayAmp = uWindStrength * 0.38;
+                    float sway = sin(uWindTime * windFreq + position.x * 0.5 + position.z * 0.5 + swayNoise * 6.28) * swayAmp;
+                    transformed.x += sway;
+                    transformed.z += sway * 0.7;
+                    transformed.y += sin(uWindTime * (windFreq * 0.7) + position.x * 0.3 + swayNoise * 6.28) * (swayAmp * 0.22);
+                }
+                `
+            );
+        }
     };
 
     if (!window.windMaterials) window.windMaterials = [];
@@ -562,14 +576,22 @@ export const TRUNK_MATERIAL = new THREE.MeshStandardMaterial({
  * `createTreeManager` usa para hacer nacer hojas que caen en la posición
  * mundial real de cada árbol plantado.
  */
-export function generateTreeTemplate(seed, typeIndex = 0) {
+export function generateTreeTemplate(seed, typeIndex = 0, tierConfig = null) {
     const config = TREE_TYPE_CONFIGS[typeIndex % TREE_TYPE_CONFIGS.length];
     const rng = alea(seed + '-foliage');
+
+    const clumpMult  = tierConfig?.foliageClumpFactor ?? 1.0;
+    const planesMult = tierConfig?.foliagePlanesFactor ?? 1.0;
+    const sizeMult   = tierConfig?.planeSizeMult ?? 1.0;
 
     const trunkRes = buildOrganicTrunk(seed, config.trunk);
     const trunkGeometry = trunkRes.geometry;
 
     const fCfg = config.foliage;
+    const effectiveClumpCount = Math.max(4, Math.round(fCfg.clumpCount * clumpMult));
+    const effectivePlanesPerClump = Math.max(6, Math.round(fCfg.planesPerClump * planesMult));
+    const effectivePlaneSize = fCfg.planeSize * sizeMult;
+
     const foliageGeomsByPalette = [[], [], [], []];
 
     // Fuentes de anclaje: puntos a lo largo de las ramas + puntas de rama.
@@ -580,7 +602,7 @@ export function generateTreeTemplate(seed, typeIndex = 0) {
     // Agregar puntos distribuidos en cúpula 360° para garantizar copa esférica "redondita"
     const crownCenterY = trunkRes.height * 0.72;
     const crownRadius  = trunkRes.height * 0.38;
-    const domeSamples = 45;
+    const domeSamples = Math.max(12, Math.round(45 * clumpMult));
     for (let c = 0; c < domeSamples; c++) {
         const theta = (c / domeSamples) * Math.PI * 2 + rng() * 0.2;
         const phi = Math.acos(2 * (0.15 + rng() * 0.78) - 1);
@@ -599,14 +621,14 @@ export function generateTreeTemplate(seed, typeIndex = 0) {
     }
 
     let clumpIdx = 0;
-    for (let i = 0; i < fCfg.clumpCount; i++) {
+    for (let i = 0; i < effectiveClumpCount; i++) {
         // Muestreo uniforme 360° para cobertura redonda en todo el árbol
         const src = sources[i % sources.length];
         const paletteIndex = clumpIdx < 4 ? clumpIdx : Math.floor(rng() * 4);
         const scale = fCfg.scaleMin + rng() * (fCfg.scaleMax - fCfg.scaleMin);
         const clumpRadius = (src.radius || 1) * fCfg.radiusScale;
 
-        const clumpGeo = buildFoliageGeometry(fCfg.planesPerClump, fCfg.planeSize, rng);
+        const clumpGeo = buildFoliageGeometry(effectivePlanesPerClump, effectivePlaneSize, rng);
         clumpGeo.scale(scale * clumpRadius, scale * clumpRadius, scale * clumpRadius);
         clumpGeo.rotateY(rng() * Math.PI * 2);
         clumpGeo.translate(src.pos.x, src.pos.y, src.pos.z);
@@ -763,11 +785,14 @@ export function createTreeManager(scene, parent, maxTrees = 600, opts = {}) {
     const TYPE_COUNT = TREE_TYPE_CONFIGS.length;
     const PALETTE_COUNT = TREE_PALETTES.length;
     const maxFallingLeaves = opts.maxFallingLeaves ?? 260;
+    const tierCfg = opts.tierConfig || null;
+    const simplifiedWind = tierCfg?.simplifiedWind ?? false;
+    const castFoliageShadows = tierCfg?.castFoliageShadows ?? false;
 
     // Generar plantillas una vez por tipo
     const templates = [];
     for (let i = 0; i < TYPE_COUNT; i++) {
-        templates.push(generateTreeTemplate(`city-tree-type-${i}`, i));
+        templates.push(generateTreeTemplate(`city-tree-type-${i}`, i, tierCfg));
     }
 
     // Un InstancedMesh por tipo para troncos
@@ -804,15 +829,15 @@ export function createTreeManager(scene, parent, maxTrees = 600, opts = {}) {
                 pal.dark,
                 pal.light,
                 foliageTexture,
-                lightDir
+                lightDir,
+                simplifiedWind
             );
             if (opts.cityLeafMaterials) {
                 opts.cityLeafMaterials.add(mat);
             }
             const mesh = new THREE.InstancedMesh(templates[i].foliageGeometries[p], mat, maxTrees);
-            // Optimización GPU principal: El tronco proyecta la sombra del árbol en el suelo (castShadow = true).
-            // Desactivar castShadow en el follaje elimina 40 pases alphaTest extremadamente pesados en el mapa de sombras.
-            mesh.castShadow = false;
+            // Configuración de sombra adaptativa por tier
+            mesh.castShadow = castFoliageShadows;
             mesh.receiveShadow = true;
             mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
             mesh.frustumCulled = true;
