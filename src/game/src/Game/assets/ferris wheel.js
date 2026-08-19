@@ -397,29 +397,32 @@ export class FerrisWheel {
     }
 
     _createPhysics() {
-        if (!this._physicsWorld || !RAPIER) return;
+        if (!this._physicsWorld || typeof RAPIER === 'undefined' || !RAPIER || !RAPIER.ColliderDesc) return;
 
-        const sc = this._scale;
-        const wheelThick = 3.2;
-        const halfT = wheelThick / 2;
+        try {
+            const sc = this._scale;
+            const wheelThick = 3.2;
+            const halfT = wheelThick / 2;
 
-        // Cubo rígido que cubre las patas y la base para evitar que el jugador la atraviese
-        const hw = 9.5 * sc;
-        const hh = 14.0 * sc;
-        const hd = (halfT + 1.5) * sc;
+            const hw = 9.5 * sc;
+            const hh = 14.0 * sc;
+            const hd = (halfT + 1.5) * sc;
 
-        const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(
-            this._wx,
-            this._wy + hh,
-            this._wz
-        );
-        this._physicsBody = this._physicsWorld.createRigidBody(bodyDesc);
+            const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(
+                this._wx,
+                this._wy + hh,
+                this._wz
+            );
+            this._physicsBody = this._physicsWorld.createRigidBody(bodyDesc);
 
-        const colliderDesc = RAPIER.ColliderDesc.cuboid(hw, hh, hd)
-            .setFriction(0.8)
-            .setRestitution(0.0);
-        
-        this._physicsWorld.createCollider(colliderDesc, this._physicsBody);
+            const colliderDesc = RAPIER.ColliderDesc.cuboid(hw, hh, hd)
+                .setFriction(0.8)
+                .setRestitution(0.0);
+            
+            this._physicsWorld.createCollider(colliderDesc, this._physicsBody);
+        } catch (e) {
+            console.warn('[FerrisWheel] Physics creation error handled gracefully:', e);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────

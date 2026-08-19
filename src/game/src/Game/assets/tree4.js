@@ -681,12 +681,7 @@ export function createTreeManager(scene, parent, maxTrees = 600, opts = {}) {
             mesh.receiveShadow = true;
             mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
             mesh.frustumCulled = false;
-            if (mesh.geometry && mesh.geometry.attributes && mesh.geometry.attributes.position && mesh.geometry.attributes.position.count > 0) {
-                mesh.geometry.computeBoundingSphere();
-                if (mesh.geometry.boundingSphere && !isNaN(mesh.geometry.boundingSphere.radius)) {
-                    mesh.geometry.boundingSphere.radius *= 4;
-                }
-            }
+            mesh.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 200);
             parent.add(mesh);
             typeFoliage.push(mesh);
         }

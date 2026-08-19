@@ -204,25 +204,30 @@ export class WaterTower {
         tankGroup.add(tip);
 
         // ── 4. Colisionadores Físicos Rapier ────────────────────────────
-        if (this.physicsWorld) {
-            // Base cuboid collider
-            const platHalfW = (11 * this.scale) / 2;
-            const platHalfH = (0.4 * this.scale) / 2;
-            const platBodyDesc = RAPIER.RigidBodyDesc.fixed()
-                .setTranslation(this.x, this.y + platHalfH, this.z);
-            const platBody = this.physicsWorld.createRigidBody(platBodyDesc);
-            const platColDesc = RAPIER.ColliderDesc.cuboid(platHalfW, platHalfH, platHalfW)
-                .setFriction(0.7);
-            this.physicsWorld.createCollider(platColDesc, platBody);
+        if (this.physicsWorld && typeof RAPIER !== 'undefined' && RAPIER.ColliderDesc) {
+            try {
+                // Base cuboid collider
+                const platHalfW = (11 * this.scale) / 2;
+                const platHalfH = (0.4 * this.scale) / 2;
+                const platBodyDesc = RAPIER.RigidBodyDesc.fixed()
+                    .setTranslation(this.x, this.y + platHalfH, this.z);
+                const platBody = this.physicsWorld.createRigidBody(platBodyDesc);
+                const platColDesc = RAPIER.ColliderDesc.cuboid(platHalfW, platHalfH, platHalfW)
+                    .setFriction(0.7);
+                this.physicsWorld.createCollider(platColDesc, platBody);
 
-            // Structure & Tank cylinder collider
-            const structRadius = (2.2 * this.scale);
-            const structHalfH  = ((legH + 6) * this.scale) / 2;
-            const structBodyDesc = RAPIER.RigidBodyDesc.fixed()
-                .setTranslation(this.x, this.y + structHalfH, this.z);
-            const structBody = this.physicsWorld.createRigidBody(structBodyDesc);
-            const structColDesc = RAPIER.ColliderDesc.cylinder(structHalfH, structRadius);
-            this.physicsWorld.createCollider(structColDesc, structBody);
+                // Structure & Tank cylinder collider
+                const structRadius = (2.2 * this.scale);
+                const structHalfH  = ((legH + 6) * this.scale) / 2;
+                const structBodyDesc = RAPIER.RigidBodyDesc.fixed()
+                    .setTranslation(this.x, this.y + structHalfH, this.z);
+                const structBody = this.physicsWorld.createRigidBody(structBodyDesc);
+                
+                const structColDesc = RAPIER.ColliderDesc.cuboid(structRadius, structHalfH, structRadius);
+                this.physicsWorld.createCollider(structColDesc, structBody);
+            } catch (e) {
+                console.warn('[WaterTower] Physics creation error handled gracefully:', e);
+            }
         }
     }
 }

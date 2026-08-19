@@ -3,16 +3,10 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { ProceduralSound } from './ProceduralSound.js';
+import helvetikerBoldFont from 'three/examples/fonts/helvetiker_bold.typeface.json';
 
-/**
- * WorldText
- *
- * Creates the 3D glowing text "JESUSDEV.CO" at ground level with dynamic Rapier physics
- * from the start. The player and vehicles can knock into the letters to topple them,
- * and they can also be struck by clicking.
- */
 export class WorldText {
-    constructor(scene, camera, physicsWorld) {
+    constructor(scene, camera, physicsWorld = null) {
         this.scene = scene;
         this.camera = camera;
         this.physicsWorld = physicsWorld;
@@ -22,12 +16,10 @@ export class WorldText {
         this._raycaster = new THREE.Raycaster();
         this._mouse = new THREE.Vector2();
 
-        // Actual ground height in this zone
-        this.floorY = 2.54;
-
-        // Extended start and end positions with diagonal layout
-        this.startPos = new THREE.Vector3(-415.0, this.floorY, -140.0);
-        this.endPos   = new THREE.Vector3(-480.0, this.floorY, -320.0);
+        this.position = new THREE.Vector3(-418.58, 1.88, -137.19);
+        this.floorY = 1.85;
+        this.startPos = this.position.clone();
+        this.endPos   = new THREE.Vector3(-419.36, 1.82, -273.43);
 
         this.textString = "JESUSDEV.CO";
 
@@ -35,19 +27,13 @@ export class WorldText {
         this._onPointerDown = this._onPointerDown.bind(this);
         window.addEventListener('pointerdown', this._onPointerDown);
 
-        // Load font
-        const loader = new FontLoader();
-        loader.load(
-            'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_bold.typeface.json',
-            (loadedFont) => {
-                this.font = loadedFont;
-                this.createText();
-            },
-            undefined,
-            (err) => {
-                console.error('[WorldText] Error loading helvetiker font:', err);
-            }
-        );
+        // Parse local font
+        try {
+            this.font = new FontLoader().parse(helvetikerBoldFont);
+            this.createText();
+        } catch (err) {
+            console.error('[WorldText] Error parsing helvetiker font:', err);
+        }
     }
 
     createText() {
@@ -102,7 +88,8 @@ export class WorldText {
 
         // Calculate automatic spacing
         const numLetters = letterData.length;
-        const spacing = (segmentLength - totalCharsWidth) / Math.max(1, numLetters - 1);
+        const kern = 0; // Positions now define natural tight spacing
+        const spacing = (segmentLength - totalCharsWidth) / Math.max(1, numLetters - 1) + kern;
         const angle = Math.atan2(segmentVec.z, segmentVec.x);
 
         let accumulatedDist = 0;

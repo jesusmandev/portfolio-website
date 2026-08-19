@@ -340,10 +340,9 @@ export class SocialIcons {
 
                     const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(worldX, worldY, worldZ);
                     const body = this.physicsWorld.createRigidBody(bodyDesc);
-                    const colliderDesc = RAPIER.ColliderDesc.cylinder(
-                        1.8 * this.scale,
-                        4.2 * this.scale
-                    ).setFriction(0.8);
+                    const r = 4.2 * this.scale;
+                    const hh = 1.8 * this.scale;
+                    const colliderDesc = RAPIER.ColliderDesc.cuboid(r, hh, r).setFriction(0.8);
                     this.physicsWorld.createCollider(colliderDesc, body);
                     this.colliders.push(body);
                 } catch (e) {

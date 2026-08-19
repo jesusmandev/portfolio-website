@@ -802,15 +802,7 @@ export function createTreeManager(scene, parent, maxTrees = 600, opts = {}) {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.frustumCulled = true;
-        if (mesh.geometry && mesh.geometry.attributes && mesh.geometry.attributes.position && mesh.geometry.attributes.position.count > 0) {
-            mesh.geometry.computeBoundingSphere();
-        }
-        if (!mesh.geometry.boundingSphere) {
-            mesh.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 5, 0), 350);
-        } else {
-            mesh.geometry.boundingSphere.center.set(0, 5, 0);
-            mesh.geometry.boundingSphere.radius = 350;
-        }
+        mesh.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 5, 0), 350);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         parent.add(mesh);
         trunkMeshes.push(mesh);
@@ -841,15 +833,7 @@ export function createTreeManager(scene, parent, maxTrees = 600, opts = {}) {
             mesh.receiveShadow = true;
             mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
             mesh.frustumCulled = true;
-        if (mesh.geometry && mesh.geometry.attributes && mesh.geometry.attributes.position && mesh.geometry.attributes.position.count > 0) {
-            mesh.geometry.computeBoundingSphere();
-        }
-        if (!mesh.geometry.boundingSphere) {
             mesh.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 5, 0), 350);
-        } else {
-            mesh.geometry.boundingSphere.center.set(0, 5, 0);
-            mesh.geometry.boundingSphere.radius = 350;
-        }
             parent.add(mesh);
             typeFoliage.push(mesh);
         }

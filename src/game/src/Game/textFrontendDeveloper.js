@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { ProceduralSound } from './ProceduralSound.js';
+import helvetikerBoldFont from 'three/examples/fonts/helvetiker_bold.typeface.json';
 
 /**
  * TextFrontendDeveloper
@@ -13,7 +14,7 @@ import { ProceduralSound } from './ProceduralSound.js';
  * Includes dynamic Rapier physics and click interaction.
  */
 export class TextFrontendDeveloper {
-    constructor(scene, camera, physicsWorld, options = {}) {
+    constructor(scene, camera, physicsWorld = null, options = {}) {
         this.scene = scene;
         this.camera = camera;
         this.physicsWorld = physicsWorld;
@@ -30,23 +31,16 @@ export class TextFrontendDeveloper {
         this.letterMeshes = [];
         this._raycaster = new THREE.Raycaster();
         this._mouse = new THREE.Vector2();
-        this._fontUrl = options.fontUrl || 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_bold.typeface.json';
 
         this._onPointerDown = this._onPointerDown.bind(this);
         window.addEventListener('pointerdown', this._onPointerDown);
 
-        const loader = new FontLoader();
-        loader.load(
-            this._fontUrl,
-            (loadedFont) => {
-                this.font = loadedFont;
-                this.createText();
-            },
-            undefined,
-            (err) => {
-                console.error('[TextFrontendDeveloper] Error cargando fuente:', err);
-            }
-        );
+        try {
+            this.font = new FontLoader().parse(helvetikerBoldFont);
+            this.createText();
+        } catch (err) {
+            console.error('[TextFrontendDeveloper] Error parsing font:', err);
+        }
     }
 
     createText() {

@@ -11,6 +11,29 @@ let _modalEl = null;
 
 function _getHUD() {
     if (!_hudEl) {
+        // Reuse water-hud-styles if not yet injected
+        if (!document.getElementById('water-hud-styles')) {
+            const _s = document.createElement('style');
+            _s.id = 'water-hud-styles';
+            _s.textContent = `
+                @keyframes _whud-pulse{0%,100%{opacity:.92;}50%{opacity:1;}}
+                @keyframes _whud-waves{0%{transform:translateX(0) rotate(0deg);}50%{transform:translateX(-25%) rotate(2deg);}100%{transform:translateX(-50%) rotate(0deg);}}
+                .whud-wrap{position:relative;padding:2px;border-radius:999px;animation:_whud-pulse 3s infinite ease-in-out;cursor:pointer;overflow:hidden;transition:transform .2s ease;}
+                .whud-wrap:hover{transform:scale(1.03);}
+                .whud-inner{position:relative;background:#0f172a;border-radius:999px;padding:11px 22px;display:flex;align-items:center;gap:10px;overflow:hidden;}
+                .whud-water{position:absolute;bottom:0;left:0;width:100%;height:52%;z-index:1;pointer-events:none;border-bottom-left-radius:999px;border-bottom-right-radius:999px;overflow:hidden;}
+                .whud-wave{position:absolute;bottom:0;left:0;width:200%;height:100%;border-radius:40%;}
+                .whud-wave:nth-child(1){animation:_whud-waves 4s infinite linear;}
+                .whud-wave:nth-child(2){bottom:-5px;border-radius:45%;animation:_whud-waves 6s infinite linear reverse;}
+                .whud-wave:nth-child(3){bottom:-2px;border-radius:42%;opacity:.7;animation:_whud-waves 3s infinite linear;}
+                .whud-content{position:relative;z-index:20;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+                .whud-badge{background:rgba(51,65,85,.65);color:#f8fafc;padding:2px 10px;border-radius:999px;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(4px);}
+                .whud-key{font-weight:800;letter-spacing:.05em;font-size:16px;}
+                .whud-label{color:#e2e8f0;font-weight:400;font-size:14px;}
+            `;
+            document.head.appendChild(_s);
+        }
+
         _hudEl = document.createElement('div');
         _hudEl.id = HUD_ID;
         _hudEl.style.cssText = [
@@ -18,28 +41,32 @@ function _getHUD() {
             'bottom:82px',
             'left:50%',
             'transform:translateX(-50%)',
-            'background:linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.92), rgba(14,116,144,0.85))',
-            'color:#f8fbff',
-            'font-family:"Segoe UI", system-ui, sans-serif',
-            'font-size:15px',
-            'font-weight:700',
-            'letter-spacing:0.04em',
-            'padding:12px 24px',
-            'border-radius:999px',
-            'border:1px solid rgba(56,189,248,0.7)',
-            'pointer-events:auto',
-            'cursor:pointer',
             'z-index:9999',
             'display:none',
             'user-select:none',
-            'backdrop-filter:blur(12px)',
-            'box-shadow:0 0 0 1px rgba(255,255,255,0.1), 0 0 24px rgba(56,189,248,0.5), 0 0 45px rgba(167,139,250,0.3)',
-            'text-shadow:0 0 12px rgba(125,211,252,0.75)',
-            'transition:opacity 0.25s ease, transform 0.25s ease',
-            'text-align:center',
-            'max-width:90vw'
+            'pointer-events:auto',
+            'cursor:pointer',
+            'max-width:90vw',
+            'border-radius:999px',
+            'border:2px solid rgba(139,92,246,0.8)',
+            'background:linear-gradient(90deg,rgba(139,92,246,0.4) 0%,rgba(139,92,246,0.8) 50%,rgba(139,92,246,0.4) 100%)',
+            'font-family:"Segoe UI",system-ui,sans-serif',
         ].join(';');
-        _hudEl.innerHTML = '🎮 <span style="display:inline-block;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,0.12);">Presiona</span> <strong style="color:#fef3c7; background:linear-gradient(135deg,#f59e0b,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;font-size:17px;">ENTER</strong> <span>o Toca aquí para ver los Controles</span>';
+        _hudEl.innerHTML = `
+            <div class="whud-wrap" style="border:none;background:none;padding:0;">
+              <div class="whud-inner">
+                <div class="whud-water">
+                  <div class="whud-wave" style="background:rgba(109,40,217,0.22);"></div>
+                  <div class="whud-wave" style="background:rgba(91,33,182,0.16);"></div>
+                  <div class="whud-wave" style="background:rgba(76,29,149,0.28);"></div>
+                </div>
+                <div class="whud-content">
+                  <span class="whud-badge">Press</span>
+                  <span class="whud-key" style="color:#fbbf24;">ENTER</span>
+                  <span class="whud-label">or tap here to view Controls</span>
+                </div>
+              </div>
+            </div>`;
         document.body.appendChild(_hudEl);
     }
     return _hudEl;

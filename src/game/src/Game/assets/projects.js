@@ -796,7 +796,7 @@ export class ProyectosSign {
     }
 
     _buildPhysics() {
-        if (!this.physicsWorld) return;
+        if (!this.physicsWorld || typeof RAPIER === 'undefined' || !RAPIER.ColliderDesc) return;
 
         const px = this.position.x;
         const py = this.position.y;
@@ -806,22 +806,35 @@ export class ProyectosSign {
         const sinY = Math.sin(this.rotationY);
 
         const createFixedCollider = (localX, localY, localZ, colliderDesc) => {
-            const worldX = px + (localX * cosY - localZ * sinY) * sc;
-            const worldY = py + localY * sc;
-            const worldZ = pz + (localX * sinY + localZ * cosY) * sc;
+            if (!colliderDesc) return;
+            try {
+                const worldX = px + (localX * cosY - localZ * sinY) * sc;
+                const worldY = py + localY * sc;
+                const worldZ = pz + (localX * sinY + localZ * cosY) * sc;
 
-            const bodyDesc = RAPIER.RigidBodyDesc.fixed()
-                .setTranslation(worldX, worldY, worldZ)
-                .setRotation({ x: 0, y: Math.sin(this.rotationY / 2), z: 0, w: Math.cos(this.rotationY / 2) });
-            const body = this.physicsWorld.createRigidBody(bodyDesc);
-            this.physicsWorld.createCollider(colliderDesc, body);
+                const bodyDesc = RAPIER.RigidBodyDesc.fixed()
+                    .setTranslation(worldX, worldY, worldZ)
+                    .setRotation({ x: 0, y: Math.sin(this.rotationY / 2), z: 0, w: Math.cos(this.rotationY / 2) });
+                const body = this.physicsWorld.createRigidBody(bodyDesc);
+                this.physicsWorld.createCollider(colliderDesc, body);
+            } catch (err) {
+                console.warn('[ProyectosSign] Fixed collider creation error:', err);
+            }
         };
 
-        createFixedCollider(-1.9, 2.05, 0, RAPIER.ColliderDesc.cylinder(2.05 * sc, 0.25 * sc).setFriction(0.8));
-        createFixedCollider(1.9, 2.05, 0, RAPIER.ColliderDesc.cylinder(2.05 * sc, 0.25 * sc).setFriction(0.8));
-        createFixedCollider(0, 3.5, 0, RAPIER.ColliderDesc.cuboid(2.9 * sc, 2.0 * sc, 0.35 * sc).setFriction(0.8));
-        createFixedCollider(-4.5, 2.3, 0, RAPIER.ColliderDesc.cylinder(2.3 * sc, 0.2 * sc).setFriction(0.8));
-        createFixedCollider(4.5, 2.3, 0, RAPIER.ColliderDesc.cylinder(2.3 * sc, 0.2 * sc).setFriction(0.8));
+        const makeCylinder = (hh, r) => {
+            return RAPIER.ColliderDesc.cuboid(r, hh, r).setFriction(0.8);
+        };
+
+        try {
+            createFixedCollider(-1.9, 2.05, 0, makeCylinder(2.05 * sc, 0.25 * sc));
+            createFixedCollider(1.9, 2.05, 0, makeCylinder(2.05 * sc, 0.25 * sc));
+            createFixedCollider(0, 3.5, 0, RAPIER.ColliderDesc.cuboid(2.9 * sc, 2.0 * sc, 0.35 * sc).setFriction(0.8));
+            createFixedCollider(-4.5, 2.3, 0, makeCylinder(2.3 * sc, 0.2 * sc));
+            createFixedCollider(4.5, 2.3, 0, makeCylinder(2.3 * sc, 0.2 * sc));
+        } catch (err) {
+            console.warn('[ProyectosSign] Physics build error handled gracefully:', err);
+        }
     }
 
     _onPointerDown(event) {

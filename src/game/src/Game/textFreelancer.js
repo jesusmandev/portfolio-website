@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { ProceduralSound } from './ProceduralSound.js';
+import helvetikerBoldFont from 'three/examples/fonts/helvetiker_bold.typeface.json';
 
 /**
  * TextFreelancer
@@ -12,15 +13,15 @@ import { ProceduralSound } from './ProceduralSound.js';
  * Extracted from the HTML prototype and integrated smoothly and lightly.
  */
 export class TextFreelancer {
-    constructor(scene, camera, physicsWorld, options = {}) {
+    constructor(scene, camera, physicsWorld = null, options = {}) {
         this.scene = scene;
         this.camera = camera;
         this.physicsWorld = physicsWorld;
         this.proceduralSound = new ProceduralSound();
 
-        this.text = options.text || 'FREELANCER';
+        this.textString = options.text || 'FREELANCER';
         this.fontSize = options.fontSize ?? 10.0;
-        this.fontDepth = options.fontDepth ?? 1.2;
+        this.fontDepth = options.fontDepth ?? 1.4;
         this.floorY = options.floorY ?? 1.76;
         this.position = options.position
             ? new THREE.Vector3(options.position.x, options.position.y, options.position.z)
@@ -29,23 +30,16 @@ export class TextFreelancer {
         this.letterMeshes = [];
         this._raycaster = new THREE.Raycaster();
         this._mouse = new THREE.Vector2();
-        this._fontUrl = options.fontUrl || 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_bold.typeface.json';
 
         this._onPointerDown = this._onPointerDown.bind(this);
         window.addEventListener('pointerdown', this._onPointerDown);
 
-        const loader = new FontLoader();
-        loader.load(
-            this._fontUrl,
-            (loadedFont) => {
-                this.font = loadedFont;
-                this.createText();
-            },
-            undefined,
-            (err) => {
-                console.error('[TextFreelancer] Error cargando fuente:', err);
-            }
-        );
+        try {
+            this.font = new FontLoader().parse(helvetikerBoldFont);
+            this.createText();
+        } catch (err) {
+            console.error('[textFreelancer] Error parsing font:', err);
+        }
     }
 
     createText() {
@@ -76,8 +70,8 @@ export class TextFreelancer {
         const letterSpacing = this.fontSize * 0.15;
         const spaceWidth = this.fontSize * 0.45;
 
-        for (let i = 0; i < this.text.length; i++) {
-            const char = this.text[i];
+        for (let i = 0; i < this.textString.length; i++) {
+            const char = this.textString[i];
             if (char === ' ') {
                 letterData.push({ isSpace: true, width: spaceWidth });
                 totalWidth += spaceWidth;
@@ -102,7 +96,7 @@ export class TextFreelancer {
             });
 
             totalWidth += size.x;
-            if (i < this.text.length - 1) {
+            if (i < this.textString.length - 1) {
                 totalWidth += letterSpacing;
             }
         }

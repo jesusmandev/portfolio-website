@@ -358,10 +358,9 @@ export class Habilidades {
 
                     const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(worldX, worldY, worldZ);
                     const body = this.physicsWorld.createRigidBody(bodyDesc);
-                    const colliderDesc = RAPIER.ColliderDesc.cylinder(
-                        5.5 * skillScale * this.scale,
-                        0.4 * skillScale * this.scale
-                    ).setFriction(0.8);
+                    const hh = 5.5 * skillScale * this.scale;
+                    const r  = 0.4 * skillScale * this.scale;
+                    const colliderDesc = RAPIER.ColliderDesc.cuboid(r, hh, r).setFriction(0.8);
                     this.physicsWorld.createCollider(colliderDesc, body);
                 } catch (e) {
                     console.warn('[Skills] Error creating Rapier collider:', e);

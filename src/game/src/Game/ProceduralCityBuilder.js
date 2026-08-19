@@ -102,7 +102,7 @@ export class ProceduralCityBuilder {
         // Tiering configuration for mobile/desktop performance
         this.tierConfig         = options.tierConfig || null;
         this.MAX_TOTAL_BLADES   = this.tierConfig?.maxGrassBlades ?? 70000;
-        this.treeDensityFactor = this.tierConfig?.treeDensityFactor ?? 1.0;
+        this.treeDensityFactor = (this.tierConfig?.treeDensityFactor ?? 1.0) * 0.55;
         this.bushDensityFactor = this.tierConfig?.bushDensityFactor ?? 1.0;
 
         // Material sets for day/night cycle (compatible with CityBuilder API)
@@ -714,7 +714,7 @@ export class ProceduralCityBuilder {
     }
 
     _initTreeInstances() {
-        this._treeManager = createTreeManager(this.scene, this._cityGroup, 450, {
+        this._treeManager = createTreeManager(this.scene, this._cityGroup, 220, {
             cityLeafMaterials: this.cityLeafMaterials,
             cityBarkMaterials: this.cityBarkMaterials,
             tierConfig:        this.tierConfig
@@ -2336,7 +2336,7 @@ export class ProceduralCityBuilder {
             );
             if (c.type === 'cylinder') {
                 this.physicsWorld.createCollider(
-                    RAPIER.ColliderDesc.cylinder(c.hh * sc, c.r * sc)
+                    RAPIER.ColliderDesc.cuboid(c.r * sc, c.hh * sc, c.r * sc)
                         .setFriction(0.6).setRestitution(0.0),
                     body
                 );

@@ -283,8 +283,12 @@ export class PhysicsCharacter {
                     // does not render the mesh when it is out of camera view.
                     // We expand the bounding sphere to avoid popping in close cameras.
                     if (c.geometry && c.geometry.attributes && c.geometry.attributes.position && c.geometry.attributes.position.count > 0) {
-                        c.geometry.computeBoundingSphere();
-                        if (c.geometry.boundingSphere && !isNaN(c.geometry.boundingSphere.radius)) {
+                        try {
+                            c.geometry.computeBoundingSphere();
+                        } catch (_) {}
+                        if (!c.geometry.boundingSphere || isNaN(c.geometry.boundingSphere.radius)) {
+                            c.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 10);
+                        } else {
                             c.geometry.boundingSphere.radius *= 2.5;
                         }
                     }

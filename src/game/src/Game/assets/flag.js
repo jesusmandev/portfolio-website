@@ -187,11 +187,17 @@ export class Bandera {
         );
         this._physicsBody = this._physicsWorld.createRigidBody(bodyDesc);
 
-        const colliderDesc = RAPIER.ColliderDesc.cylinder(totalHeight / 2, radius)
-            .setFriction(0.6)
-            .setRestitution(0.0);
+        if (this._physicsWorld && typeof RAPIER !== 'undefined' && RAPIER.ColliderDesc) {
+            try {
+                const colliderDesc = RAPIER.ColliderDesc.cuboid(radius, totalHeight / 2, radius)
+                    .setFriction(0.6)
+                    .setRestitution(0.0);
 
-        this._physicsWorld.createCollider(colliderDesc, this._physicsBody);
+                this._physicsWorld.createCollider(colliderDesc, this._physicsBody);
+            } catch (e) {
+                console.warn('[Bandera] Physics collider creation error:', e);
+            }
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────

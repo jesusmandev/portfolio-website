@@ -301,7 +301,7 @@ export class Robot3D {
                 .setTranslation(this.x, this.y + bodyHeight / 2, this.z);
             const rigidBody = this.physicsWorld.createRigidBody(bodyDesc);
 
-            const colliderDesc = rapier.ColliderDesc.cylinder(bodyHeight / 2, bodyRadius);
+            const colliderDesc = rapier.ColliderDesc.cuboid(bodyRadius, bodyHeight / 2, bodyRadius);
             const collider = this.physicsWorld.createCollider(colliderDesc, rigidBody);
             this.colliders.push(collider);
         } catch (e) {

@@ -427,14 +427,18 @@ export class FlagsExhibition {
             this.flags.push(mesh);
 
             // Colisiones físicas para los mástiles si physicsWorld está activo
-            if (this.physicsWorld) {
-                const worldPoleX = this.wx + pole.position.x;
-                const worldPoleZ = this.wz + relZ;
-                const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed()
-                    .setTranslation(worldPoleX, this.wy + poleHeight / 2, worldPoleZ);
-                const body = this.physicsWorld.createRigidBody(rigidBodyDesc);
-                const colliderDesc = RAPIER.ColliderDesc.cylinder(poleHeight / 2, 0.6);
-                this.physicsWorld.createCollider(colliderDesc, body);
+            if (this.physicsWorld && typeof RAPIER !== 'undefined' && RAPIER.ColliderDesc) {
+                try {
+                    const worldPoleX = this.wx + pole.position.x;
+                    const worldPoleZ = this.wz + relZ;
+                    const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed()
+                        .setTranslation(worldPoleX, this.wy + poleHeight / 2, worldPoleZ);
+                    const body = this.physicsWorld.createRigidBody(rigidBodyDesc);
+                    const colliderDesc = RAPIER.ColliderDesc.cuboid(0.6, poleHeight / 2, 0.6);
+                    this.physicsWorld.createCollider(colliderDesc, body);
+                } catch (e) {
+                    console.warn('[FlagsExhibition] Physics creation error:', e);
+                }
             }
         });
     }

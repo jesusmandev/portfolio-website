@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import helvetikerBoldFont from 'three/examples/fonts/helvetiker_bold.typeface.json';
 
-const FONT_URL = 'https://threejs.org/examples/fonts/helvetiker_bold.typeface.json';
 const HUD_ID = 'logo-interaction-hud';
 
 let _hudEl = null;
@@ -10,45 +10,106 @@ let _fontPromise = null;
 
 function getFontPromise() {
     if (!_fontPromise) {
-        _fontPromise = new Promise((resolve, reject) => {
-            new FontLoader().load(FONT_URL, resolve, undefined, reject);
-        });
+        try {
+            const font = new FontLoader().parse(helvetikerBoldFont);
+            _fontPromise = Promise.resolve(font);
+        } catch (e) {
+            console.error('[logo.js] Error parsing font:', e);
+            _fontPromise = Promise.reject(e);
+        }
     }
     return _fontPromise;
 }
 
+// ── Shared water-wave HUD styles (injected once) ────────────────────────────
+if (!document.getElementById('water-hud-styles')) {
+    const _style = document.createElement('style');
+    _style.id = 'water-hud-styles';
+    _style.textContent = `
+        @keyframes _whud-pulse { 0%,100%{opacity:.92;box-shadow:0 0 12px var(--whud-glow,.3);} 50%{opacity:1;box-shadow:0 0 26px var(--whud-glow,.6);} }
+        @keyframes _whud-waves { 0%{transform:translateX(0) rotate(0deg);} 50%{transform:translateX(-25%) rotate(2deg);} 100%{transform:translateX(-50%) rotate(0deg);} }
+        .whud-wrap { position:relative; padding:2px; border-radius:999px; animation:_whud-pulse 3s infinite ease-in-out; cursor:pointer; overflow:hidden; transition:transform .2s ease; }
+        .whud-wrap:hover { transform:scale(1.03); }
+        .whud-inner { position:relative; background:#0f172a; border-radius:999px; padding:11px 22px; display:flex; align-items:center; gap:10px; overflow:hidden; }
+        .whud-water { position:absolute; bottom:0; left:0; width:100%; height:52%; z-index:1; pointer-events:none; border-bottom-left-radius:999px; border-bottom-right-radius:999px; overflow:hidden; }
+        .whud-wave { position:absolute; bottom:0; left:0; width:200%; height:100%; border-radius:40%; }
+        .whud-wave:nth-child(1) { animation:_whud-waves 4s infinite linear; }
+        .whud-wave:nth-child(2) { bottom:-5px; border-radius:45%; animation:_whud-waves 6s infinite linear reverse; }
+        .whud-wave:nth-child(3) { bottom:-2px; border-radius:42%; opacity:.7; animation:_whud-waves 3s infinite linear; }
+        .whud-content { position:relative; z-index:20; display:flex; align-items:center; gap:10px; white-space:nowrap; }
+        .whud-badge { background:rgba(51,65,85,.65); color:#f8fafc; padding:2px 10px; border-radius:999px; font-weight:700; font-size:13px; border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(4px); }
+        .whud-key { font-weight:800; letter-spacing:.05em; font-size:16px; }
+        .whud-label { color:#e2e8f0; font-weight:400; font-size:14px; }
+    `;
+    document.head.appendChild(_style);
+}
+
+/** Build a water-wave HUD element.
+ * @param {object} opts
+ *   waveColors: [string,string,string]  – rgba for 3 wave layers
+ *   borderColor: string                 – border rgba
+ *   glowColor: string                   – box-shadow rgba
+ *   keyText: string                     – e.g. 'ENTER'
+ *   keyColor: string                    – text color for keyText
+ *   labelText: string                   – e.g. 'or tap here to view projects'
+ *   bottom: string                      – CSS bottom value
+ *   pointerEvents: string
+ */
+function _buildWaterHUD(id, opts) {
+    const el = document.createElement('div');
+    el.id = id;
+    el.style.cssText = [
+        'position:fixed',
+        `bottom:${opts.bottom || '82px'}`,
+        'left:50%',
+        'transform:translateX(-50%)',
+        `z-index:9999`,
+        'display:none',
+        'user-select:none',
+        `pointer-events:${opts.pointerEvents || 'auto'}`,
+        'max-width:90vw',
+        'font-family:"Segoe UI",system-ui,sans-serif',
+        'letter-spacing:0.04em',
+        `border-radius:999px`,
+        `border:2px solid ${opts.borderColor}`,
+        `background:linear-gradient(90deg,${opts.borderColor.replace(')',',0.5)').replace('rgba(','rgba(')} 0%,${opts.borderColor} 50%,${opts.borderColor.replace(')',',0.5)').replace('rgba(','rgba(')} 100%)`,
+    ].join(';');
+    const [w1, w2, w3] = opts.waveColors;
+    el.innerHTML = `
+        <div class="whud-wrap" style="border:none;background:none;padding:0;">
+          <div class="whud-inner">
+            <div class="whud-water">
+              <div class="whud-wave" style="background:${w1};"></div>
+              <div class="whud-wave" style="background:${w2};"></div>
+              <div class="whud-wave" style="background:${w3};"></div>
+            </div>
+            <div class="whud-content">
+              <span class="whud-badge">Press</span>
+              <span class="whud-key" style="color:${opts.keyColor};">${opts.keyText}</span>
+              <span class="whud-label">${opts.labelText}</span>
+            </div>
+          </div>
+        </div>`;
+    document.body.appendChild(el);
+    return el;
+}
+
 function _getHUD() {
     if (!_hudEl) {
-        _hudEl = document.createElement('div');
-        _hudEl.id = HUD_ID;
-        _hudEl.style.cssText = [
-            'position:fixed',
-            'bottom:82px',
-            'left:50%',
-            'transform:translateX(-50%)',
-            'background:linear-gradient(135deg, rgba(15,23,42,0.92), rgba(30,41,59,0.88), rgba(14,116,144,0.8))',
-            'color:#f8fbff',
-            'font-family:"Segoe UI",sans-serif',
-            'font-size:15px',
-            'font-weight:700',
-            'letter-spacing:0.06em',
-            'text-transform:uppercase',
-            'padding:12px 26px',
-            'border-radius:999px',
-            'border:1px solid rgba(125,211,252,0.8)',
-            'pointer-events:auto',
-            'cursor:pointer',
-            'z-index:9999',
-            'display:none',
-            'user-select:none',
-            'backdrop-filter:blur(10px)',
-            'box-shadow:0 0 0 1px rgba(255,255,255,0.1), 0 0 22px rgba(56,189,248,0.45), 0 0 40px rgba(167,139,250,0.26)',
-            'text-shadow:0 0 12px rgba(125,211,252,0.75)',
-            'text-align:center',
-            'max-width:90vw'
-        ].join(';');
-        _hudEl.innerHTML = '<span style="display:inline-block;padding:2px 6px;border-radius:999px;background:linear-gradient(135deg, rgba(251,191,36,0.18), rgba(125,211,252,0.2));">Presiona</span> <strong style="color:#fef3c7; text-shadow:0 0 18px rgba(250,204,21,0.8);">ENTER</strong> <span style="opacity:0.9;">o Toca aquí para ver los proyectos</span>';
-        document.body.appendChild(_hudEl);
+        _hudEl = _buildWaterHUD(HUD_ID, {
+            bottom: '82px',
+            borderColor: 'rgba(14,165,233,0.8)',
+            waveColors: [
+                'rgba(2,132,199,0.22)',
+                'rgba(3,105,161,0.16)',
+                'rgba(7,89,133,0.28)',
+            ],
+            keyText: 'ENTER',
+            keyColor: '#fbbf24',
+            labelText: 'or tap here to view projects',
+            pointerEvents: 'auto',
+        });
+        _hudEl.style.cursor = 'pointer';
     }
     return _hudEl;
 }
@@ -56,32 +117,19 @@ function _getHUD() {
 let _escHudEl = null;
 function _getEscHUD() {
     if (!_escHudEl) {
-        _escHudEl = document.createElement('div');
-        _escHudEl.id = 'projects-esc-hud';
-        _escHudEl.style.cssText = [
-            'position:fixed',
-            'bottom:36px',
-            'left:50%',
-            'transform:translateX(-50%)',
-            'background:linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.92))',
-            'color:#f8fbff',
-            'font-family:"Segoe UI",sans-serif',
-            'font-size:16px',
-            'font-weight:700',
-            'letter-spacing:0.06em',
-            'text-transform:uppercase',
-            'padding:10px 24px',
-            'border-radius:999px',
-            'border:1px solid rgba(239,68,68,0.7)',
-            'pointer-events:none',
-            'z-index:9999',
-            'display:none',
-            'user-select:none',
-            'backdrop-filter:blur(10px)',
-            'box-shadow:0 0 20px rgba(239,68,68,0.35)',
-        ].join(';');
-        _escHudEl.innerHTML = 'Presiona <strong style="color:#f87171; text-shadow:0 0 12px rgba(239,68,68,0.8);">ESC</strong> para salir de los proyectos';
-        document.body.appendChild(_escHudEl);
+        _escHudEl = _buildWaterHUD('projects-esc-hud', {
+            bottom: '36px',
+            borderColor: 'rgba(239,68,68,0.75)',
+            waveColors: [
+                'rgba(185,28,28,0.22)',
+                'rgba(153,27,27,0.16)',
+                'rgba(127,29,29,0.28)',
+            ],
+            keyText: 'ESC',
+            keyColor: '#f87171',
+            labelText: 'to close projects',
+            pointerEvents: 'none',
+        });
     }
     return _escHudEl;
 }
