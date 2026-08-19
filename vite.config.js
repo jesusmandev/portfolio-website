@@ -33,8 +33,8 @@ function logToTerminalPlugin() {
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/portfolio-website/' : '/',
+export default defineConfig({
+  base: process.env.VERCEL ? '/' : '/portfolio-website/',
   plugins: [
     tailwindcss(),
     react(),
@@ -42,9 +42,7 @@ export default defineConfig(({ command }) => ({
   ],
   server: {
     watch: {
-      // Ignorar el archivo de logs del browser para que las escrituras
-      // no desencadenen recargas del servidor de desarrollo.
       ignored: ['**/browser_logs.txt']
     }
   }
-}))
+})
