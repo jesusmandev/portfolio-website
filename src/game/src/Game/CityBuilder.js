@@ -15,7 +15,7 @@ export class CityBuilder {
      * @param {*}            chunkManager  — ignorado (la ciudad procedural no usa chunks)
      * @param {Function}     onReady       — callback cuando la ciudad está lista
      */
-    constructor(scene, physicsWorld, chunkManager, onReady) {
+    constructor(scene, physicsWorld, chunkManager, onReady, tierConfig = null) {
         this.scene        = scene;
         this.physicsWorld = physicsWorld;
         this.onReady      = onReady;
@@ -42,6 +42,7 @@ export class CityBuilder {
                 offsetY: -1.0,
                 offsetZ:  0,
                 scale:    3.0,   // 3x: ciudad proporcional al personaje de 9u
+                tierConfig: tierConfig
             }
         );
     }

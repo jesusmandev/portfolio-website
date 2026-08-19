@@ -99,6 +99,12 @@ export class ProceduralCityBuilder {
         this.offsetZ = options.offsetZ ??  200;
         this.cityScale = options.scale  ??  1.0;
 
+        // Tiering configuration for mobile/desktop performance
+        this.tierConfig         = options.tierConfig || null;
+        this.MAX_TOTAL_BLADES   = this.tierConfig?.maxGrassBlades ?? 70000;
+        this.treeDensityFactor = this.tierConfig?.treeDensityFactor ?? 1.0;
+        this.bushDensityFactor = this.tierConfig?.bushDensityFactor ?? 1.0;
+
         // Material sets for day/night cycle (compatible with CityBuilder API)
         this.cityGroundMaterials = new Set();
         this.cityLeafMaterials   = new Set();
@@ -762,6 +768,7 @@ export class ProceduralCityBuilder {
     }
 
     _addPalm(x, z, scale = 1) {
+        if (this.treeDensityFactor < 1.0 && Math.random() > this.treeDensityFactor) return;
         if (this._isOnRoad(x, z) || this._isInFountain(x, z) || this._isInParking(x, z) || this._isInBuilding(x, z) || this._isInSportsZone(x, z)) return;
         const onPlaza = Math.abs(x) < CITY_PAD / 2 && Math.abs(z) < CITY_PAD / 2;
         const baseY = onPlaza ? ZONE_Y : GRASS_TOP_Y;
@@ -802,6 +809,7 @@ export class ProceduralCityBuilder {
     }
 
     _addTree(x, z, scale = 1) {
+        if (this.treeDensityFactor < 1.0 && Math.random() > this.treeDensityFactor) return;
         if (this._isOnRoad(x, z) || this._isInFountain(x, z) || this._isInParking(x, z) || this._isInBuilding(x, z) || this._isInSportsZone(x, z)) return;
         const onPlaza = Math.abs(x) < CITY_PAD / 2 && Math.abs(z) < CITY_PAD / 2;
         const baseY = onPlaza ? ZONE_Y : GRASS_TOP_Y;
@@ -836,6 +844,7 @@ export class ProceduralCityBuilder {
     }
 
     _addBush(x, z, scale = 1) {
+        if (this.bushDensityFactor < 1.0 && Math.random() > this.bushDensityFactor) return;
         if (this._isOnRoad(x, z) || this._isInFountain(x, z) || this._isInParking(x, z) || this._isInBuilding(x, z) || this._isInSportsZone(x, z)) return;
         const onPlaza = Math.abs(x) < CITY_PAD / 2 && Math.abs(z) < CITY_PAD / 2;
         const baseY = onPlaza ? ZONE_Y : GRASS_TOP_Y;
@@ -2197,7 +2206,7 @@ export class ProceduralCityBuilder {
             console.log(`[PCB] Césped allPoints: ${allPoints.length} | X=[${minX.toFixed(1)}, ${maxX.toFixed(1)}] Z=[${minZ.toFixed(1)}, ${maxZ.toFixed(1)}]`);
         }
 
-        const MAX_TOTAL_BLADES = 70000;  // límite optimizado: hojas más anchas compensan el número menor
+        const MAX_TOTAL_BLADES = this.MAX_TOTAL_BLADES;  // límite optimizado por tier de dispositivo
         let finalPoints = allPoints;
         if (allPoints.length > MAX_TOTAL_BLADES) {
             // Fisher-Yates shuffle correcto (el sort aleatorio es muy sesgado)
@@ -2206,7 +2215,7 @@ export class ProceduralCityBuilder {
                 [allPoints[i], allPoints[j]] = [allPoints[j], allPoints[i]];
             }
             finalPoints = allPoints.slice(0, MAX_TOTAL_BLADES);
-            console.warn(`[PCB] Césped limitado de ${allPoints.length} a ${MAX_TOTAL_BLADES} briznas para proteger rendimiento.`);
+            console.warn(`[PCB] Césped limitado de ${allPoints.length} a ${MAX_TOTAL_BLADES} briznas para proteger rendimiento (Tier: ${this.tierConfig?.tierName || 'Alta/Desktop'}).`);
         }
 
         for (let i = 0; i < finalPoints.length; i += this.GRASS_BATCH) {

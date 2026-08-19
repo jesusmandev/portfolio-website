@@ -15,9 +15,11 @@ import { Habilidades } from './Game/assets/skills.js';
 import { SocialIcons } from './Game/assets/icons.js';
 import { SymbolFrontendDev } from './Game/assets/symbolFrontendDev.js';
 import { MobileControlsManager } from './Game/MobileControlsManager.js';
+import { getDeviceTierConfig } from './Game/DeviceTierManager.js';
 
 export class Game { 
-   constructor() {
+    constructor() {
+    this.tierInfo         = getDeviceTierConfig();
     this._physicsEnabled  = false;
     this._controlsEnabled = false;
     this._renderStarted   = false;
@@ -168,7 +170,7 @@ async initAsync() {
 
             console.log('[Game] City and Water ready. Spawning Character...');
             trySpawn();
-        });
+        }, this.tierInfo.config);
 
         // Safety net: 45 s max total wait (sequential requires more margin on slow network)
         setTimeout(() => {
@@ -199,14 +201,15 @@ _initThree() {
     this.camera.lookAt(-260, 3, -68);
     this.scene.userData.camera = this.camera;
 
+    const cfg = this.tierInfo.config;
     this.renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: cfg.shadows,
         powerPreference: 'high-performance',
         logarithmicDepthBuffer: true  // Resolves depth precision loss with huge far planes
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(1.0); // Fixed resolution at 1.0 — no adaptive scaling
-    this.renderer.shadowMap.enabled    = true;
+    this.renderer.setPixelRatio(cfg.pixelRatio);
+    this.renderer.shadowMap.enabled    = cfg.shadows;
     // PCFShadowMap is faster than PCFSoftShadowMap (fewer sample taps).
     // With 1024px map and 200u frustum, shadows still look good.
     this.renderer.shadowMap.type       = THREE.PCFShadowMap;
