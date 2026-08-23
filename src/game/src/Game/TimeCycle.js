@@ -17,6 +17,8 @@ export class TimeCycle {
         this.currentTime = 0; // Segundos
         this.galloPlayed = false; // Bandera para reproducir el gallo solo una vez por amanecer
         this.galloSound = null;
+        this.grilloSound = null;
+        this.grilloTimer = 0;
         this.audioLoader = new THREE.AudioLoader();
 
         this.initSky();
@@ -212,11 +214,18 @@ export class TimeCycle {
 
     initAudio(listener) {
         this.galloSound = new THREE.Audio(listener);
+        this.grilloSound = new THREE.Audio(listener);
         const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
         this.audioLoader.load(`${baseUrl}/audios/gallo/gallo.mp3`, (buffer) => {
             if (this.galloSound) {
                 this.galloSound.setBuffer(buffer);
                 this.galloSound.setVolume(0.8);
+            }
+        });
+        this.audioLoader.load(`${baseUrl}/audios/grillo/grillo.mp3`, (buffer) => {
+            if (this.grilloSound) {
+                this.grilloSound.setBuffer(buffer);
+                this.grilloSound.setVolume(0.7);
             }
         });
     }
@@ -265,6 +274,25 @@ export class TimeCycle {
 
         this.updateSunPosition(phase, phaseProgress, playerPos);
         this.updateLighting(phase, phaseProgress);
+
+        // Control de audio de grillo de noche (suena cada 30 segundos únicamente durante la noche)
+        if (this.isNight) {
+            if (this.grilloTimer > 0) {
+                this.grilloTimer -= delta;
+            }
+            if (this.grilloTimer <= 0 && this.grilloSound && this.grilloSound.buffer) {
+                if (!this.grilloSound.isPlaying) {
+                    this.grilloSound.play();
+                    this.grilloTimer = 30.0; // Esperar 30 segundos antes de volver a reproducir
+                }
+            }
+        } else {
+            // Fuera de la noche, detener el grillo si está sonando y reiniciar temporizador
+            if (this.grilloSound && this.grilloSound.isPlaying) {
+                this.grilloSound.stop();
+            }
+            this.grilloTimer = 0;
+        }
 
         // Actualizar los uniformes del shader de cielo
         if (this.skyMesh && this.skyMesh.material && this.skyMesh.material.uniforms) {

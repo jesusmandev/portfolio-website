@@ -49,11 +49,8 @@ export function createLeafTexture(darkColor, lightColor) {
     ctx.bezierCurveTo(36, 50, 76, 8, 128, 4);
     ctx.closePath();
 
-    const g = ctx.createLinearGradient(60, 10, 200, 246);
-    g.addColorStop(0, lightColor);
-    g.addColorStop(0.5, darkColor);
-    g.addColorStop(1, darkColor);
-    ctx.fillStyle = g;
+    const baseColor = (typeof darkColor === 'string') ? darkColor : '#1B5E20';
+    ctx.fillStyle = baseColor;
     ctx.fill();
 
     const t = new THREE.CanvasTexture(c);
@@ -547,10 +544,10 @@ export const TREE_PALETTES_BY_TYPE = [
     [ { dark: '#c71585', light: '#ff69b4' }, { dark: '#db2777', light: '#f472b6' }, { dark: '#f472b6', light: '#fbcfe8' }, { dark: '#e11d48', light: '#fb7185' } ],
     // Tipo 4: Olmo verde medio
     [ { dark: '#33691E', light: '#689F38' }, { dark: '#558B2F', light: '#8BC34A' }, { dark: '#689F38', light: '#AED581' }, { dark: '#7CB342', light: '#C5E1A5' } ],
-    // Tipo 5: Roble dorado otoñal
-    [ { dark: '#a16207', light: '#facc15' }, { dark: '#b45309', light: '#f59e0b' }, { dark: '#d97706', light: '#fcd34d' }, { dark: '#c2410c', light: '#fbbf24' } ],
-    // Tipo 6: Árbol amarillo gigante
-    [ { dark: '#854d0e', light: '#fde047' }, { dark: '#a16207', light: '#facc15' }, { dark: '#713f12', light: '#fef08a' }, { dark: '#7c2d12', light: '#fde68a' } ],
+    // Tipo 5: Roble dorado / amarillo brillante
+    [ { dark: '#ca8a04', light: '#ffff00' }, { dark: '#d97706', light: '#ffea00' }, { dark: '#eab308', light: '#fde047' }, { dark: '#f59e0b', light: '#ffff66' } ],
+    // Tipo 6: Árbol amarillo gigante brillante
+    [ { dark: '#eab308', light: '#ffff00' }, { dark: '#ca8a04', light: '#ffea00' }, { dark: '#d97706', light: '#fde047' }, { dark: '#f59e0b', light: '#ffff99' } ],
     // Tipo 7: Arbusto verde compacto
     [ { dark: '#1B5E20', light: '#4CAF50' }, { dark: '#2E7D32', light: '#66BB6A' }, { dark: '#388E3C', light: '#81C784' }, { dark: '#1B5E20', light: '#A5D6A7' } ],
     // Tipo 8: Sauce Azul (tree4.js) — azul cielo y azul marino

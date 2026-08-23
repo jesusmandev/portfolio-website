@@ -62,7 +62,7 @@ const GRASS_TOP_Y = 0.4;
 // COLORS AND MATERIALS
 // ============================================================
 const C = {
-    dirt: 0x523b26, asphalt: 0x2e2e32, line: 0xdeded8, sidewalk: 0x88888f,
+    dirt: 0x523b26, lightDirt: 0xe2cf9c, asphalt: 0x2e2e32, line: 0xdeded8, sidewalk: 0x88888f,
     grass: 0x8fce2a, grassDark: 0x74b826, grassLime: 0x8be61a, grassLimeDark: 0x6ec213, wall: 0xe4e1d9, wallCap: 0xccccc2,
     parking: 0x3c6488, glass: 0x152230, frame: 0x3a3d42, sill: 0x8a8a92,
     plinthDark: 0x55555c, cornice: 0xf0f0ed, metal: 0x7a828a, ac: 0xdbdad5, vent: 0x2a2a2d,
@@ -72,6 +72,26 @@ const C = {
     houseYellow: 0xe3d8b1, houseBlue: 0x8fa4b3, roofTerra: 0xa35a3d, roofDark: 0x4a4f54,
     treeTrunk: 0x4a3424, leavesA: 0x628c3d, leavesB: 0x496e2a
 };
+
+// Manchas orgánicas de arena/tierra clara en las zonas verdes del mapa
+const DIRT_PATCHES = [
+    // 1. Mancha principal amplia en la zona Norte-Oeste (cubre FRONTEND DEVELOPER)
+    { cx: -22, cz: -130, rx: 34, rz: 52, seed: 1.25 },
+    // 2. Extensión suave conectada a la mancha Norte-Oeste
+    { cx: -36, cz: -155, rx: 24, rz: 30, seed: 3.71 },
+    // 3. Zona verde Noreste
+    { cx: 115, cz: -115, rx: 26, rz: 30, seed: 5.12 },
+    // 4. Zona verde Sureste
+    { cx: 110, cz: 110, rx: 24, rz: 28, seed: 2.84 },
+    // 5. Zona verde Suroeste
+    { cx: -115, cz: 115, rx: 28, rz: 25, seed: 4.43 },
+    // 6. Cinturón verde Oeste (entre ciudad y costa)
+    { cx: -140, cz: -20, rx: 22, rz: 32, seed: 6.35 },
+    // 7. Cinturón verde Este
+    { cx: 140, cz: 20, rx: 20, rz: 30, seed: 7.91 },
+    // 8. Hombro Norte-Este
+    { cx: 50, cz: -140, rx: 18, rz: 22, seed: 8.42 }
+];
 
 function makeMat(color, extra = {}) {
     return new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0.1, ...extra });
@@ -122,6 +142,7 @@ export class ProceduralCityBuilder {
 
         // Instanced tree manager (multiple types + procedural foliage)
         this._treeManager = null;
+        this._pineSpawns  = [];
 
         // Lamp arm geometry (shared)
         this._lampArmGeo = null;
@@ -835,10 +856,14 @@ export class ProceduralCityBuilder {
         if (r < 0.10) typeIndex = 8;       // 10% Sauce Azul
         else if (r < 0.20) typeIndex = 9;  // 10% Lavanda Compacto
 
-        // ~15% de árboles naturales (no arbustos ni sauce/lavanda) se colocan secos (sin hojas)
-        const dry = typeIndex === null && Math.random() < 0.15;
+        // ~15% de árboles naturales se reemplazan por pinos 3D (Pine.glb)
+        const isPine = typeIndex === null && Math.random() < 0.15;
 
-        this._treeManager.addTree(x, z, finalScale, typeIndex, baseY, dry);
+        if (isPine) {
+            this._pineSpawns.push({ x, y: baseY, z, scale: finalScale, rotY: Math.random() * Math.PI * 2 });
+        } else {
+            this._treeManager.addTree(x, z, finalScale, typeIndex, baseY, false);
+        }
 
         const rr = 0.55 * finalScale;
         const hh = 2.0 * finalScale;
@@ -862,10 +887,136 @@ export class ProceduralCityBuilder {
     _finalizeInstances() {
         this._treeManager.finalize();
         this._palmManager.finalize();
+        this._buildPineTrees();
+    }
+
+    _buildPineTrees() {
+        if (!this._pineSpawns || this._pineSpawns.length === 0) return;
+        const PINE_URL = '/pine/Pine.glb';
+        const city = this._cityGroup;
+
+        const _placeAll = (gltf) => {
+            const baseScene = gltf.scene;
+            const group = new THREE.Group();
+
+            this._pineSpawns.forEach(spawn => {
+                const clone = baseScene.clone(true);
+                clone.position.set(spawn.x, spawn.y, spawn.z);
+                clone.rotation.y = spawn.rotY;
+                clone.scale.setScalar(spawn.scale * 1.35);
+                clone.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        if (this.cityLeafMaterials && child.material) {
+                            this.cityLeafMaterials.add(child.material);
+                        }
+                    }
+                });
+                group.add(clone);
+            });
+
+            city.add(group);
+            console.log(`[ProceduralCityBuilder] ${this._pineSpawns.length} pinos (Pine.glb) colocados en la ciudad.`);
+        };
+
+        if (AssetCache.has(PINE_URL)) {
+            _placeAll(AssetCache.get(PINE_URL));
+        } else {
+            const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
+            const loader = new GLTFLoader();
+            loader.setMeshoptDecoder(MeshoptDecoder);
+            loader.load(
+                `${baseUrl}${PINE_URL}`,
+                (gltf) => {
+                    AssetCache.set(PINE_URL, gltf);
+                    _placeAll(gltf);
+                },
+                undefined,
+                (err) => console.error('[ProceduralCityBuilder] Error cargando Pine.glb:', err)
+            );
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────
     //  GROUND & STREETS
+
+    _getPatchWaveDistance(px, pz, patch) {
+        const dx = (px - patch.cx) / patch.rx;
+        const dz = (pz - patch.cz) / patch.rz;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > 1.6) return 2.0;
+
+        const angle = Math.atan2(dz, dx);
+        const wave1 = Math.sin(angle * 4 + patch.seed) * 0.16;
+        const wave2 = Math.cos(angle * 7 - patch.seed * 1.3) * 0.09;
+        const wave3 = Math.sin(angle * 3 + patch.seed * 2.5) * 0.06;
+
+        const waveFactor = 1.0 + wave1 + wave2 + wave3;
+        return dist / Math.max(0.2, waveFactor);
+    }
+
+    _isInOrganicDirtPatch(px, pz) {
+        for (const patch of DIRT_PATCHES) {
+            if (this._getPatchWaveDistance(px, pz, patch) <= 0.95) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    _buildOrganicDirtPatches() {
+        const city = this._cityGroup;
+        const colLightDirt = new THREE.Color(C.lightDirt);
+        const colGrassDark = new THREE.Color(C.grassDark);
+
+        for (const patch of DIRT_PATCHES) {
+            const segments = 36;
+            const width = patch.rx * 3.0;
+            const height = patch.rz * 3.0;
+            const geo = new THREE.PlaneGeometry(width, height, segments, segments);
+            geo.rotateX(-Math.PI / 2);
+
+            const posAttr = geo.attributes.position;
+            const count = posAttr.count;
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                const vx = posAttr.getX(i);
+                const vz = posAttr.getZ(i);
+                const worldX = patch.cx + vx;
+                const worldZ = patch.cz + vz;
+
+                const d = this._getPatchWaveDistance(worldX, worldZ, patch);
+                let c;
+                if (d <= 0.35) {
+                    c = colLightDirt;
+                } else if (d >= 1.0) {
+                    c = colGrassDark;
+                } else {
+                    const t = (d - 0.35) / 0.65;
+                    const smoothT = t * t * (3 - 2 * t);
+                    c = colLightDirt.clone().lerp(colGrassDark, smoothT);
+                }
+                colors[i * 3]     = c.r;
+                colors[i * 3 + 1] = c.g;
+                colors[i * 3 + 2] = c.b;
+            }
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.MeshStandardMaterial({
+                vertexColors: true,
+                roughness: 0.9,
+                metalness: 0.05
+            });
+            this.cityGroundMaterials.add(mat);
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(patch.cx, 0.205, patch.cz);
+            mesh.receiveShadow = true;
+            city.add(mesh);
+        }
+    }
 
     _buildGround() {
         const M = this._M;
@@ -876,13 +1027,8 @@ export class ProceduralCityBuilder {
         // BASE DE CÉSPED visual base (plana, barata)
         this._addMesh(this._boxGeo(MAP_SIZE, 0.4, MAP_SIZE), M.grassDark, 0, 0.2, 0, city);
 
-        // Sección específica delimitada por la carretera (Norte: Z de -170 a -81, X de -34 a +34)
-        // Solo la mitad Oeste (X < 0) es de color café claro sin briznas de césped
-        const secW = 34;                 // Ancho de cada mitad (de -34 a 0, y de 0 a +34)
-        const secD = 170 - 81;           // Profundidad (89u, entre Z=-170 y Z=-81)
-        const secZ = (-170 + -81) / 2;   // Centro Z = -125.5
-        this._addMesh(this._boxGeo(secW, 0.41, secD), M.lightDirt, -secW / 2, 0.205, secZ, city);
-        this._addMesh(this._boxGeo(secW, 0.41, secD), M.grassDark,  secW / 2, 0.205, secZ, city);
+        // Manchas orgánicas de tierra café claro con bordes ondulados y difuminados
+        this._buildOrganicDirtPatches();
 
         this._addMesh(this._boxGeo(CITY_PAD, 0.9, CITY_PAD), M.asphalt, 0, 0.45, 0, city);
 
@@ -2180,9 +2326,8 @@ export class ProceduralCityBuilder {
                 attempts++;
                 const px = cx + (Math.random() * 2 - 1) * halfW;
                 const pz = cz + (Math.random() * 2 - 1) * halfD;
-                // En la sección delimitada por la carretera (Z entre -170 y -81, X entre -34 y +34),
-                // solo la mitad Oeste (px < 0) NO tiene briznas de césped
-                if (px >= -34 && px < 0 && pz >= -170 && pz <= -81) continue;
+                // Quitar el césped 3D de las manchas orgánicas de tierra café
+                if (this._isInOrganicDirtPatch(px, pz)) continue;
                 if (holeHalfW && holeHalfD && Math.abs(px - cx) < holeHalfW && Math.abs(pz - cz) < holeHalfD) continue;
                 if (zone.skipFn && zone.skipFn(px, pz)) continue;
                 if (this._isInSportsZone(px, pz)) continue;

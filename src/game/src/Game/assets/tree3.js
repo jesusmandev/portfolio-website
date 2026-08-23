@@ -438,12 +438,12 @@ const TREE_TYPE_CONFIGS = [
     }
 ];
 
-// Paletas amarillas
+// Paletas amarillas vibrantes e intensas
 export const TREE_PALETTES = [
-    { shadow: 0xa16207, mid: 0xca8a04, light: 0xfacc15, rim: 0xfef08a },
-    { shadow: 0x854d0e, mid: 0xb45309, light: 0xf59e0b, rim: 0xfde68a },
-    { shadow: 0x713f12, mid: 0xd97706, light: 0xfcd34d, rim: 0xfef3c7 },
-    { shadow: 0x7c2d12, mid: 0xc2410c, light: 0xfbbf24, rim: 0xfffbeb },
+    { shadow: 0xca8a04, mid: 0xeab308, light: 0xffff00, rim: 0xffffff },
+    { shadow: 0xd97706, mid: 0xf59e0b, light: 0xffea00, rim: 0xffffaa },
+    { shadow: 0xb45309, mid: 0xeab308, light: 0xfde047, rim: 0xffffcc },
+    { shadow: 0xca8a04, mid: 0xfacc15, light: 0xffff33, rim: 0xffffff },
 ];
 
 export const TRUNK_MATERIAL = new THREE.MeshStandardMaterial({
