@@ -20,6 +20,7 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { GLTFLoader }     from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader }    from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { AssetCache }  from '../Intro/AssetCache.js';
 import { createTreeManager } from './assets/trees.js';
@@ -143,6 +144,7 @@ export class ProceduralCityBuilder {
         // Instanced tree manager (multiple types + procedural foliage)
         this._treeManager = null;
         this._pineSpawns  = [];
+        this._glbTreeSpawns = [];
 
         // Lamp arm geometry (shared)
         this._lampArmGeo = null;
@@ -843,9 +845,6 @@ export class ProceduralCityBuilder {
             return;
         }
 
-        // Quitar un 12% de los árboles tupitos/frondosos colocados en la escena
-        if (Math.random() < 0.12) return;
-
         // Variación extra de tamaño por árbol: entre 70% y 155% de la escala pedida,
         // para que se note la mezcla de árboles grandes y pequeños en el mapa.
         const finalScale = scale * (0.7 + Math.random() * 0.85);
@@ -861,13 +860,30 @@ export class ProceduralCityBuilder {
 
         if (isPine) {
             this._pineSpawns.push({ x, y: baseY, z, scale: finalScale, rotY: Math.random() * Math.PI * 2 });
+            const rr = 0.55 * finalScale;
+            const hh = 2.0 * finalScale;
+            this._treeColliders.push({ x, y: baseY + hh, z, r: rr, hh });
         } else {
-            this._treeManager.addTree(x, z, finalScale, typeIndex, baseY, false);
-        }
+            // El 95% (70% previo + 25% adicional) que se quita de Three.js se reemplaza por los modelos GLB de public/TRESS
+            if (Math.random() < 0.95) {
+                this._glbTreeSpawns.push({
+                    x, y: baseY, z,
+                    scale: finalScale,
+                    rotY: Math.random() * Math.PI * 2,
+                    modelIndex: Math.floor(Math.random() * 3)
+                });
+                const rr = 0.55 * finalScale;
+                const hh = 2.0 * finalScale;
+                this._treeColliders.push({ x, y: baseY + hh, z, r: rr, hh });
+                return;
+            }
 
-        const rr = 0.55 * finalScale;
-        const hh = 2.0 * finalScale;
-        this._treeColliders.push({ x, y: baseY + hh, z, r: rr, hh });
+            // El 5% restante se conserva como árbol procedural de Three.js
+            this._treeManager.addTree(x, z, finalScale, typeIndex, baseY, false);
+            const rr = 0.55 * finalScale;
+            const hh = 2.0 * finalScale;
+            this._treeColliders.push({ x, y: baseY + hh, z, r: rr, hh });
+        }
     }
 
     _addBush(x, z, scale = 1) {
@@ -888,6 +904,7 @@ export class ProceduralCityBuilder {
         this._treeManager.finalize();
         this._palmManager.finalize();
         this._buildPineTrees();
+        this._buildGlbTrees();
     }
 
     _buildPineTrees() {
@@ -936,6 +953,84 @@ export class ProceduralCityBuilder {
                 (err) => console.error('[ProceduralCityBuilder] Error cargando Pine.glb:', err)
             );
         }
+    }
+
+    _buildGlbTrees() {
+        if (!this._glbTreeSpawns || this._glbTreeSpawns.length === 0) return;
+
+        const GLB_TREES = [
+            { url: '/TRESS/este.glb',      scaleMult: 0.35 },
+            { url: '/TRESS/este otro.glb', scaleMult: 0.65 },
+            { url: '/TRESS/y este.glb',    scaleMult: 0.50 }
+        ];
+
+        const baseUrl = (import.meta.env?.BASE_URL || '/').replace(/\/$/, '');
+        const city = this._cityGroup;
+        const loader = new GLTFLoader();
+        if (MeshoptDecoder) loader.setMeshoptDecoder(MeshoptDecoder);
+
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath(`${baseUrl}/draco/`);
+        loader.setDRACOLoader(dracoLoader);
+
+        const loadedModels = new Map();
+        let pending = GLB_TREES.length;
+
+        const _onAllLoaded = () => {
+            const group = new THREE.Group();
+            this._glbTreeSpawns.forEach(spawn => {
+                const cfg = GLB_TREES[spawn.modelIndex % GLB_TREES.length];
+                const gltf = loadedModels.get(cfg.url);
+                if (!gltf) return;
+
+                const clone = gltf.scene.clone(true);
+                clone.position.set(spawn.x, spawn.y, spawn.z);
+                clone.rotation.y = spawn.rotY;
+                clone.scale.setScalar(spawn.scale * cfg.scaleMult);
+                clone.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        if (this.cityLeafMaterials && child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => this.cityLeafMaterials.add(m));
+                            } else {
+                                this.cityLeafMaterials.add(child.material);
+                            }
+                        }
+                    }
+                });
+                group.add(clone);
+            });
+
+            city.add(group);
+            console.log(`[ProceduralCityBuilder] ${this._glbTreeSpawns.length} árboles GLB (public/TRESS) colocados en la ciudad.`);
+            dracoLoader.dispose();
+        };
+
+        GLB_TREES.forEach(cfg => {
+            if (AssetCache.has(cfg.url)) {
+                loadedModels.set(cfg.url, AssetCache.get(cfg.url));
+                pending--;
+                if (pending === 0) _onAllLoaded();
+            } else {
+                loader.load(
+                    encodeURI(`${baseUrl}${cfg.url}`),
+                    (gltf) => {
+                        AssetCache.set(cfg.url, gltf);
+                        loadedModels.set(cfg.url, gltf);
+                        pending--;
+                        if (pending === 0) _onAllLoaded();
+                    },
+                    undefined,
+                    (err) => {
+                        console.error(`[ProceduralCityBuilder] Error cargando árbol GLB (${cfg.url}):`, err);
+                        pending--;
+                        if (pending === 0) _onAllLoaded();
+                    }
+                );
+            }
+        });
     }
 
     // ─────────────────────────────────────────────────────────────────
