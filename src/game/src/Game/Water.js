@@ -455,7 +455,7 @@ class Water extends Mesh {
 
 				renderer.setRenderTarget( renderTarget );
 
-				renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+				renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897 
 
 				if ( renderer.autoClear === false ) renderer.clear();
 				renderer.render( scene, mirrorCamera );
@@ -494,7 +494,7 @@ class Water extends Mesh {
  *
  * @typedef {Object} Water~Options
  * @property {number} [textureWidth=512] - The texture width. A higher value results in more clear reflections but is also more expensive.
- * @property {number} [textureHeight=512] - The texture height. A higher value results in more clear reflections but is also more expensive.
+ * @property {number} [textureHeight=512] - The TEXTUR height. A higher value results in more clear reflections but is also more expensive.
  * @property {number} [clipBias=0] - The clip bias.
  * @property {number} [alpha=1] - The alpha value. Keep at 1 so nothing below the water is visible.
  * @property {number} [time=0] - The time value.

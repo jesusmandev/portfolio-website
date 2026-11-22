@@ -1,0 +1,165 @@
+.menu-trigger
+    display none
+    position absolute
+    right 0
+    top 20px
+    width 48px
+    height 46px
+    z-index 9
+    -webkit-user-select none
+    -moz-user-select none
+    user-select none
+
+    html.is-started &
+        display block
+
+    html.input-filter-menu &
+    html.input-filter-modal &
+    html.input-filter-cinematic &
+    html.input-filter-intro &
+        pointer-events none
+
+    --hover-translate 5px
+
+    html:not(.is-mode-touch) &:hover
+        .button-inner
+            transform translateX(-5px)
+            box-shadow -4px 6px 24px rgba(20, 118, 255, 0.55)
+
+            &::after
+                opacity 0.9
+
+            .icon-container
+                opacity 1
+
+    .button-inner
+        position absolute
+        top 0
+        left 0
+        width calc(100% + var(--hover-translate))
+        height 100%
+        border-radius 12px 0 0 12px
+        background linear-gradient(135deg, #1d8cff 0%, #0b4fd6 58%, #07225e 100%)
+        box-shadow -2px 4px 18px rgba(10, 82, 214, 0.42)
+        transition transform 0.18s ease, box-shadow 0.2s ease
+
+        html.input-filter-menu &,
+        html.input-filter-modal &,
+        html.input-filter-intro &
+        html.input-filter-cinematic &
+            transform translateX(100%)
+            transition-delay 0
+
+        &::after
+            content ''
+            display block
+            position absolute
+            top 3px
+            right 0
+            bottom 3px
+            left 3px
+            border-radius 9px 0 0 9px
+            border 1px solid rgba(145, 224, 255, 0.7)
+            border-right none
+            opacity 0.55
+            transition opacity 0.15s
+
+        .icon-container
+            display flex
+            position absolute
+            align-items center
+            justify-content center
+            top 0
+            right var(--hover-translate)
+            bottom 0
+            left 3px
+
+            .icon
+                position relative
+                width 20px
+                height 14px
+
+                .line
+                    position absolute
+                    left 0
+                    width 100%
+                    height 2px
+                    border-radius 2px
+                    background #ffffff
+                    box-shadow 0 0 8px rgba(130, 226, 255, 0.65)
+
+                    &:nth-child(1)
+                        top 0
+
+                    &:nth-child(2)
+                        top calc(50% - 1px)
+
+                    &:nth-child(3)
+                        bottom 0
+
+.menu
+    display none
+    align-items center
+    justify-content center
+    color #eef6ff
+    background rgba(2, 8, 22, 0.58)
+    backdrop-filter blur(6px)
+    -webkit-backdrop-filter blur(6px)
+    opacity 0
+    transition opacity 0.28s ease
+
+    &.is-displayed
+        display flex
+
+    &.is-visible
+        opacity 1
+
+        .inner
+            transform scale(1) translateY(0)
+
+    *::selection
+        color #041028
+        background-color #7ce4ff
+
+    .navigation
+        display none
+
+    .inner
+        position relative
+        width @css{ min(450px, calc(100% - 32px)) }
+        max-height calc(100vh - 48px)
+        transform scale(0.94) translateY(12px)
+        transition transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)
+
+    .container
+        position relative
+        display flex
+        width 100%
+        border-radius 22px
+        background linear-gradient(160deg, rgba(9, 25, 62, 0.96) 0%, rgba(4, 12, 32, 0.98) 100%)
+        border 1px solid rgba(94, 198, 255, 0.28)
+        box-shadow 0 24px 64px rgba(0, 5, 18, 0.72), 0 0 40px rgba(24, 128, 255, 0.16), inset 0 1px 0 rgba(145, 226, 255, 0.22)
+        overflow visible
+
+    .contents
+        position relative
+        width 100%
+
+        .content
+            display none
+            width 100%
+            opacity 0
+            pointer-events none
+            transition opacity 0.25s ease
+
+            &.is-visible
+                display block
+                opacity 1
+                pointer-events auto
+
+        .content-inner
+            width 100%
+            padding 24px 24px 26px 24px
+
+            @media only screen and (max-width 480px)
+                padding 18px 16px 20px 16px

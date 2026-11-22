@@ -1,22 +1,27 @@
-# Logs
+# Dependencies & build output
+node_modules
+dist
+dist-ssr
+.vercel
+.VSCodeCounter
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs & temporary files
 logs
 *.log
 browser_logs.txt
-*.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
 *.local
-.env
-.env.*
+.autosave
 
-# Editor directories and files
+# Editor & OS files
 .vscode/*
 !.vscode/extensions.json
 .idea

@@ -1,0 +1,14 @@
+{
+  "name": "Jesús Martínez Portfolio",
+  "short_name": "Jesús",
+  "icons": [
+    {
+      "src": "/favicons/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#1d1721",
+  "background_color": "#1d1721",
+  "display": "standalone"
+}

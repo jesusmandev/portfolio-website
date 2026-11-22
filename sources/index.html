@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jesús Martínez — Portfolio 3D</title>
+
+    <meta name="description" content="Jesús Martínez's creative 3D portfolio">
+
+    <meta itemprop="name" content="Jesús Martínez">
+    <meta itemprop="description" content="Jesús Martínez's creative 3D portfolio">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Jesús Martínez">
+    <meta name="twitter:description" content="Jesús Martínez's creative 3D portfolio">
+
+    <meta property="og:site_name" content="Jesús Martínez Portfolio">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="/">
+    <meta property="og:title" content="Jesús Martínez">
+    <meta property="og:description" content="Jesús Martínez's creative 3D portfolio">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700;900&display=block" rel="stylesheet">
+
+    <link rel="stylesheet" href="./style/index.styl">
+
+    <link rel="icon" type="image/svg+xml" href="./favicons/favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="./favicons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Jesús Martínez">
+    <link rel="manifest" href="./favicons/site.webmanifest">
+
+    <link rel="preload" href="./respawns/respawnsReferences-compressed.glb" as="fetch" crossorigin>
+    <link rel="preload" href="./intro/sound.ktx" as="fetch" crossorigin>
+    <link rel="preload" href="./palette.ktx" as="fetch" crossorigin>
+</head>
+<body>
+
+    <div class="js-fonts-loader fonts-loader">
+        <div class="font nunito" data-font="400 20px Nunito">&nbsp;</div>
+        <div class="font amatic-sc" data-font="700 20px 'Amatic SC'">&nbsp;</div>
+        <div class="font pally" data-font="500 20px Pally-Medium">&nbsp;</div>
+    </div>
+
+    <div class="game">
+
+        <canvas class="js-canvas"></canvas>
+
+        <!-- Touch buttons -->
+        <div class="js-touch-buttons touch-buttons">
+            <div class="js-overlay overlay"></div>
+            <div class="list">
+                <button type="button" data-name="interact" class="js-button interact">Interact</button>
+                <button type="button" data-name="unstuck" class="js-button unstuck">Unstuck</button>
+                <button type="button" data-name="previous" class="js-button previous" aria-label="Anterior"></button>
+                <button type="button" data-name="next" class="js-button next" aria-label="Siguiente"></button>
+                <button type="button" data-name="open" class="js-button open" aria-label="Abrir"></button>
+                <button type="button" data-name="close" class="js-button close" aria-label="Cerrar"></button>
+            </div>
+        </div>
+
+        <!-- Menu trigger -->
+        <button type="button" class="js-menu-trigger menu-trigger" aria-label="Abrir configuración">
+            <span class="button-inner">
+                <span class="icon-container">
+                    <span class="icon">
+                        <span class="line"></span>
+                        <span class="line"></span>
+                        <span class="line"></span>
+                    </span>
+                </span>
+            </span>
+        </button>
+
+        <!-- Menu (Solo Configuración) -->
+        <div class="js-menu menu">
+
+            <div class="inner">
+
+                <div class="js-navigation navigation" hidden>
+                    <!-- Options -->
+                    <button type="button" class="js-navigation-item item" data-name="options" tabindex="-1" aria-label="Configuración"></button>
+                </div>
+
+                <div class="container">
+
+                    <div class="contents js-contents">
+
+                        <!-- Configuración -->
+                        <div class="js-content content options-content">
+                            <div class="content-inner">
+
+                                <div class="settings-header">
+                                    <div class="settings-title-group">
+                                        <div class="settings-badge">
+                                            <img src="ui/gear.svg" alt="" loading="lazy">
+                                        </div>
+                                        <div class="settings-heading">
+                                            <div class="settings-title">Configuración</div>
+                                            <div class="settings-subtitle">Ajustes del portafolio 3D</div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="js-close close" aria-label="Cerrar configuración">
+                                        <img class="icon is-default" src="ui/close.svg" alt="" loading="lazy">
+                                        <span class="icon is-xbox">A</span>
+                                    </button>
+                                </div>
+
+                                <div class="settings-list">
+
+                                    <div class="setting-row">
+                                        <div class="setting-info">
+                                            <span class="setting-label">Audio</span>
+                                            <span class="setting-desc">Activar o silenciar el sonido</span>
+                                        </div>
+                                        <button type="button" class="js-audio-toggle audio-toggle setting-btn has-tooltip" aria-label="Activar o silenciar sonido">
+                                            <span class="tooltip">Activar / silenciar sonido</span>
+                                            <img class="icon icon-audio audio-on" src="ui/audio/audioOn.svg" alt="" loading="lazy">
+                                            <img class="icon icon-audio audio-off" src="ui/audio/audioOff.svg" alt="" loading="lazy">
+                                        </button>
+                                    </div>
+
+                                    <div class="setting-row">
+                                        <div class="setting-info">
+                                            <span class="setting-label">Calidad gráfica</span>
+                                            <span class="setting-desc">Nivel de efectos y sombras</span>
+                                        </div>
+                                        <button type="button" class="js-quality-toggle quality-toggle setting-btn is-primary has-tooltip">
+                                            <span class="tooltip">Cambiar calidad visual</span>
+                                            <span>High</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="setting-row">
+                                        <div class="setting-info">
+                                            <span class="setting-label">¿Atascado?</span>
+                                            <span class="setting-desc">Volver al punto de reaparición</span>
+                                        </div>
+                                        <button type="button" class="js-respawn setting-btn has-tooltip">
+                                            <span class="tooltip">Teletransportar al punto más cercano</span>
+                                            <span>Respawn</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="setting-row">
+                                        <div class="setting-info">
+                                            <span class="setting-label">Reiniciar mundo</span>
+                                            <span class="setting-desc">Restaurar todos los objetos</span>
+                                        </div>
+                                        <button type="button" class="js-reset setting-btn has-tooltip">
+                                            <span class="tooltip">Reinicia todos los objetos del mapa</span>
+                                            <span>Reset</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="setting-row">
+                                        <div class="setting-info">
+                                            <span class="setting-label">Renderizador</span>
+                                            <span class="setting-desc">Motor gráfico activo</span>
+                                        </div>
+                                        <button type="button" class="js-renderer setting-btn is-disabled is-success has-tooltip">
+                                            <span class="js-tooltip tooltip">Óptimo rendimiento</span>
+                                            <span class="status-dot"></span>
+                                            <span>WebGPU</span>
+                                        </button>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Modals -->
+        <div class="js-modals modals">
+        </div>
+
+        <!-- Notifications -->
+        <div class="js-notifications notifications">
+            <div class="js-items items"></div>
+        </div>
+
+    </div>
+
+    <script type="module" src="./index.js"></script>
+</body>
+</html>
