@@ -634,7 +634,7 @@ export class Cows
             this._playAction(cow, 'walk')
         }
 
-        // Sonido de caída + animación de la tecla Y (Death01)
+        // Sonido de caída + forzar animación de la tecla Y (Death01) sin que nada la sobrescriba
         if(this.sounds?.bodyFall)
         {
             try { this.sounds.bodyFall.play() } catch(_) {}
@@ -643,7 +643,10 @@ export class Cows
 
         if(this.game.world?.visualVehicle)
         {
-            this.game.world.visualVehicle.playAction('Death01')
+            if(typeof this.game.world.visualVehicle.forceAction === 'function')
+                this.game.world.visualVehicle.forceAction('Death01')
+            else
+                this.game.world.visualVehicle.playAction('Death01')
         }
 
         this._tempPos.set(playerPos.x, Math.max(0, playerPos.y - 1.1), playerPos.z)
@@ -870,9 +873,11 @@ export class Cows
         this.cowAttackDone = true
         this._hideThoughtBubble()
 
-        // Levantarse suavemente del suelo y devolver control al jugador
+        // Liberar Death01, levantarse suavemente del suelo y devolver control al jugador
         if(this.game.world?.visualVehicle)
         {
+            if(typeof this.game.world.visualVehicle.clearForcedAction === 'function')
+                this.game.world.visualVehicle.clearForcedAction()
             this.game.world.visualVehicle.playAction('Idle_Loop')
         }
 
@@ -994,8 +999,8 @@ export class Cows
         {
             this.collapseElapsed += delta
 
-            // A los 0.75s en el suelo aparece la nubecita de pensamiento
-            if(!this._thoughtShown && this.collapseElapsed >= 0.75)
+            // A los 1.3s (cuando termina de desplomarse en el suelo) aparece la nubecita de pensamiento
+            if(!this._thoughtShown && this.collapseElapsed >= 1.3)
             {
                 this._thoughtShown = true
                 this._showThoughtBubble()
@@ -1004,8 +1009,8 @@ export class Cows
             if(this._thoughtEl)
                 this._updateThoughtBubblePosition()
 
-            // Mantener al personaje en el suelo leyendo su pensamiento y luego levantarse
-            if(this.collapseElapsed >= 5.3)
+            // Mantener al personaje tirado en el suelo con la nube unos segundos y luego levantarse
+            if(this.collapseElapsed >= 5.9)
             {
                 this._standUpAndFinishSequence()
             }

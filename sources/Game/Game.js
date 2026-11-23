@@ -101,7 +101,7 @@ export class Game
         const compressedTextureExtension = compressed ? 'ktx' : 'png'
         const cb = '?cb=1'
         const isMobile = this.quality.level === 1
-        const characterAnimPath = isMobile ? `personaje/animations-mobile.glb${cb}` : `personaje/animations.glb${cb}`
+        const characterAnimPath = isMobile ? `personaje/animations-mobile.glb?cb=2` : `personaje/animations.glb${cb}`
 
         this.resources = await this.resourcesLoader.load([
             [ 'respawnsReferencesModel',    `respawns/respawnsReferences${compressedModelSuffix}.glb${cb}`, 'gltf' ],

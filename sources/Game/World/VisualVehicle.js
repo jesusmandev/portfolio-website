@@ -100,6 +100,7 @@ export class VisualVehicle
         this._introState = 'falling'
         this._feetOffsetY = 0
         this._swimBlend = 0
+        this._forcedActionName = null
 
         this.setParts()
         this.setAnimations()
@@ -209,12 +210,12 @@ export class VisualVehicle
             this.actions[clip.name] = this.mixer.clipAction(clip)
         }
 
-        // Pre-calentar poses principales (incluyendo nado)
+        // Pre-calentar poses principales (incluyendo nado y caída Death01)
         const posesToWarm = [
             'Idle_Loop', 'Walk_Loop', 'Sprint_Loop', 'Jump_Loop',
             'Jump_Start', 'Jump_Land', 'Roll', 'Crouch_Idle_Loop',
             'Sword_Block', 'Yes', 'Dance_Loop',
-            'Swim_Fwd_Loop', 'Swim_Idle_Loop'
+            'Swim_Fwd_Loop', 'Swim_Idle_Loop', 'Death01'
         ]
         for(const name of posesToWarm)
         {
@@ -298,6 +299,40 @@ export class VisualVehicle
         }
     }
 
+    forceAction(name)
+    {
+        const action = this.actions[name]
+        if(!action)
+            return
+
+        this._forcedActionName = name
+        const isLoop = name.endsWith('_Loop') || name === 'Sword_Idle' || name === 'A_TPose'
+
+        action.enabled = true
+        action.reset()
+        action.setEffectiveTimeScale(1.0)
+        action.setEffectiveWeight(1.0)
+        action.setLoop(isLoop ? THREE.LoopRepeat : THREE.LoopOnce, isLoop ? Infinity : 1)
+        action.clampWhenFinished = !isLoop
+
+        if(this.currentAction && this.currentAction !== action)
+        {
+            this.currentAction.fadeOut(0.14)
+            action.fadeIn(0.14).play()
+        }
+        else
+        {
+            action.play()
+        }
+
+        this.currentAction = action
+    }
+
+    clearForcedAction()
+    {
+        this._forcedActionName = null
+    }
+
     onActionFinished(e)
     {
         const name = e.action.getClip().name
@@ -327,6 +362,7 @@ export class VisualVehicle
     onRespawn()
     {
         this._introState = 'falling'
+        this._forcedActionName = null
     }
 
     setPaints()
@@ -388,10 +424,14 @@ export class VisualVehicle
             this.playAction('Sword_Block')
         }
 
-        // Locomoción automática según el estado físico del personaje (incluye nado durante inundación)
+        // Locomoción automática según el estado físico del personaje (si no hay una animación forzada como Death01)
         const currentClip = this.currentAction ? this.currentAction.getClip().name : null
 
-        if(physicalVehicle.isSwimming)
+        if(this._forcedActionName)
+        {
+            // Mantener la animación forzada (ej. Death01 en el suelo) sin que la locomoción la sobrescriba
+        }
+        else if(physicalVehicle.isSwimming)
         {
             if(physicalVehicle.isMoving)
             {
