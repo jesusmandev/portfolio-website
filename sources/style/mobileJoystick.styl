@@ -1,0 +1,178 @@
+.mobile-controls
+    display none
+    position fixed
+    left 0
+    right 0
+    bottom 0
+    z-index 8
+    padding 0 calc(20px + env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px))
+    align-items flex-end
+    justify-content space-between
+    pointer-events none
+    -webkit-user-select none
+    user-select none
+    touch-action none
+
+html.is-mobile-tablet.input-filter-wandering .mobile-controls
+html.is-mobile-tablet.input-filter-racing .mobile-controls
+    display flex
+
+.mobile-controls
+    .joystick-zone
+        position relative
+        width 132px
+        height 132px
+        display flex
+        align-items center
+        justify-content center
+        pointer-events auto
+        touch-action none
+
+        @media only screen and (min-width 768px)
+            width 148px
+            height 148px
+
+    .joystick-base
+        position relative
+        width 120px
+        height 120px
+        border-radius 50%
+        background radial-gradient(circle at 50% 50%, rgba(12, 26, 52, 0.45) 0%, rgba(7, 16, 36, 0.72) 100%)
+        border 2px solid rgba(56, 217, 255, 0.38)
+        box-shadow 0 8px 26px rgba(0, 12, 34, 0.45), inset 0 0 18px rgba(0, 195, 255, 0.14)
+        backdrop-filter blur(8px)
+        -webkit-backdrop-filter blur(8px)
+        display flex
+        align-items center
+        justify-content center
+        transition border-color 0.18s ease, box-shadow 0.18s ease
+
+        @media only screen and (min-width 768px)
+            width 136px
+            height 136px
+
+        &.is-active
+            border-color rgba(56, 217, 255, 0.85)
+            box-shadow 0 10px 30px rgba(0, 150, 255, 0.32), inset 0 0 22px rgba(0, 195, 255, 0.28)
+
+            .joystick-knob
+                background radial-gradient(circle at 35% 30%, #a3f2ff 0%, #00c3ff 55%, #0066cc 100%)
+                box-shadow 0 0 20px rgba(0, 195, 255, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45)
+
+    .joystick-arrows
+        position absolute
+        inset 10px
+        pointer-events none
+
+        .arrow
+            position absolute
+            width 0
+            height 0
+            opacity 0.45
+
+            &.up
+                top 0
+                left 50%
+                transform translateX(-50%)
+                border-left 5px solid transparent
+                border-right 5px solid transparent
+                border-bottom 6px solid #7ce8ff
+
+            &.down
+                bottom 0
+                left 50%
+                transform translateX(-50%)
+                border-left 5px solid transparent
+                border-right 5px solid transparent
+                border-top 6px solid #7ce8ff
+
+            &.left
+                left 0
+                top 50%
+                transform translateY(-50%)
+                border-top 5px solid transparent
+                border-bottom 5px solid transparent
+                border-right 6px solid #7ce8ff
+
+            &.right
+                right 0
+                top 50%
+                transform translateY(-50%)
+                border-top 5px solid transparent
+                border-bottom 5px solid transparent
+                border-left 6px solid #7ce8ff
+
+    .joystick-knob
+        width 52px
+        height 52px
+        border-radius 50%
+        background radial-gradient(circle at 35% 30%, #e0f9ff 0%, #38c9ff 52%, #0077cc 100%)
+        border 2px solid rgba(255, 255, 255, 0.72)
+        box-shadow 0 4px 14px rgba(0, 16, 40, 0.55), 0 0 12px rgba(0, 195, 255, 0.35)
+        will-change transform
+        pointer-events none
+
+        @media only screen and (min-width 768px)
+            width 58px
+            height 58px
+
+    .mobile-actions
+        display flex
+        align-items flex-end
+        gap 12px
+        pointer-events none
+
+        @media only screen and (min-width 768px)
+            gap 16px
+
+    .mobile-action-btn
+        pointer-events auto
+        touch-action none
+        width 58px
+        height 58px
+        border-radius 50%
+        border 2px solid rgba(56, 217, 255, 0.45)
+        background radial-gradient(circle at 35% 30%, rgba(20, 48, 92, 0.78) 0%, rgba(8, 20, 44, 0.86) 100%)
+        box-shadow 0 6px 20px rgba(0, 12, 34, 0.45), inset 0 0 12px rgba(0, 195, 255, 0.16)
+        backdrop-filter blur(8px)
+        -webkit-backdrop-filter blur(8px)
+        color #e8f8ff
+        display flex
+        flex-direction column
+        align-items center
+        justify-content center
+        gap 2px
+        font-family "Nunito", sans-serif
+        font-size 10px
+        font-weight 800
+        letter-spacing 0.04em
+        text-transform uppercase
+        transition transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease
+
+        @media only screen and (min-width 768px)
+            width 66px
+            height 66px
+            font-size 11px
+
+        svg
+            width 20px
+            height 20px
+            stroke currentColor
+            fill none
+            stroke-width 2.4
+            stroke-linecap round
+            stroke-linejoin round
+
+            @media only screen and (min-width 768px)
+                width 22px
+                height 22px
+
+        &.is-pressed
+            transform scale(0.92)
+            border-color #5ce6ff
+            background radial-gradient(circle at 35% 30%, rgba(0, 195, 255, 0.85) 0%, rgba(0, 112, 204, 0.92) 100%)
+            box-shadow 0 0 22px rgba(0, 195, 255, 0.65)
+            color #ffffff
+
+        &.is-jump
+            margin-bottom 10px

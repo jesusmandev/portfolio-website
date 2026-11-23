@@ -60,6 +60,36 @@
             </div>
         </div>
 
+        <!-- Mobile & Tablet Virtual Joystick (oculto en PC/escritorio) -->
+        <div class="js-mobile-controls mobile-controls" aria-label="Controles táctiles">
+            <div class="js-joystick-zone joystick-zone">
+                <div class="js-joystick-base joystick-base">
+                    <div class="joystick-arrows" aria-hidden="true">
+                        <span class="arrow up"></span>
+                        <span class="arrow down"></span>
+                        <span class="arrow left"></span>
+                        <span class="arrow right"></span>
+                    </div>
+                    <div class="js-joystick-knob joystick-knob"></div>
+                </div>
+            </div>
+            <div class="mobile-actions">
+                <button type="button" class="js-mobile-sprint mobile-action-btn is-sprint" aria-label="Correr">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M13 2L4 14h7l-1 8 10-12h-7l0-8z"></path>
+                    </svg>
+                    <span>Correr</span>
+                </button>
+                <button type="button" class="js-mobile-jump mobile-action-btn is-jump" aria-label="Saltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 19V5"></path>
+                        <path d="M6 11l6-6 6 6"></path>
+                    </svg>
+                    <span>Saltar</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Menu trigger -->
         <button type="button" class="js-menu-trigger menu-trigger" aria-label="Abrir configuración">
             <span class="button-inner">

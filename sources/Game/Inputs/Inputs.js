@@ -6,6 +6,7 @@ import Keyboard from './Keyboard.js'
 import { InteractiveButtons } from './InteractiveButtons.js'
 import { Wheel } from './Wheel.js'
 import { Nipple } from './Nipple.js'
+import { MobileJoystick } from './MobileJoystick.js'
 import ObservableSet from '../utilities/ObservableSet.js'
 
 export class Inputs
@@ -29,6 +30,8 @@ export class Inputs
             else if(event.type === 'delete')
             {
                 document.documentElement.classList.remove(`input-filter-${event.value}`)
+                if(event.value === 'wandering' || event.value === 'racing')
+                    this.mobileJoystick?.reset()
             }
             else if(event.type === 'clear')
             {
@@ -36,6 +39,7 @@ export class Inputs
                 {
                     document.documentElement.classList.remove(`input-filter-${previousValue}`)
                 }
+                this.mobileJoystick?.reset()
             }
         })
         this.mode = Inputs.MODE_MOUSEKEYBOARD
@@ -46,6 +50,7 @@ export class Inputs
         this.setWheel()
         this.setInteractiveButtons()
         this.setNipple()
+        this.setMobileJoystick()
 
         this.addActions(actions)
         
@@ -161,9 +166,18 @@ export class Inputs
         {
             if(this.mode !== Inputs.MODE_TOUCH)
                 return
+
+            // En móvil y tablet el movimiento se controla con el joystick virtual inferior
+            if(this.mobileJoystick?.enabled)
+                return
                 
             this.nipple.updateFromPointer(this.pointer, action)
         })
+    }
+
+    setMobileJoystick()
+    {
+        this.mobileJoystick = new MobileJoystick()
     }
 
     addActions(actions)

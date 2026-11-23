@@ -433,10 +433,20 @@ export class PhysicsVehicle
                 fInput = -this.game.inputs.gamepad.joysticks.left.safeY
             }
 
-            // Soporte para control táctil (nipple 360° hacia la dirección del dedo)
+            // Soporte para joystick virtual inferior (solo móvil y tablet)
+            const mobileJoy = this.game.inputs.mobileJoystick
+            let mobileJoyMagnitude = 1.0
+            if(fInput === 0 && sInput === 0 && mobileJoy?.enabled && mobileJoy.active && mobileJoy.magnitude > 0.02)
+            {
+                sInput = mobileJoy.x
+                fInput = mobileJoy.y
+                mobileJoyMagnitude = 0.35 + 0.65 * mobileJoy.magnitude
+            }
+
+            // Fallback táctil (solo si no está activo el joystick virtual inferior)
             let directMoveActive = false
             const nipple = this.game.inputs.nipple
-            if(fInput === 0 && sInput === 0 && nipple?.active && nipple.progress > 0.02)
+            if(fInput === 0 && sInput === 0 && !mobileJoy?.enabled && nipple?.active && nipple.progress > 0.02)
             {
                 const nippleAngle = nipple.targetAngle
                 this._moveDir.set(Math.cos(nippleAngle), 0, Math.sin(nippleAngle))
@@ -445,9 +455,11 @@ export class PhysicsVehicle
 
             const boostNow = !!boostAction?.active
             const dashKeyNow = !!dashAction?.active
-            const mobileSprintRim = !!(nipple?.active && nipple.progress > 0.92)
+            const mobileSprintBtn = !!(mobileJoy?.enabled && mobileJoy.sprintActive)
 
-            this.isSprinting = !!(boostNow || (nipple?.active && nipple.progress > 0.82) || this.isDashing)
+            // En móvil/tablet ya NO corre ni hace dash automáticamente al empujar lejos el joystick;
+            // solo corre si se mantiene pulsado el botón dedicado de Correr (o Shift en PC)
+            this.isSprinting = !!(boostNow || mobileSprintBtn || this.isDashing)
 
             if(directMoveActive)
             {
@@ -464,15 +476,13 @@ export class PhysicsVehicle
 
             this.isMoving = this._moveDir.lengthSq() > 0.0001
 
-            // Activar Dash: al iniciar Sprint con Shift en movimiento, al pulsar Ctrl/B/Cuadrado, o al empujar el joystick táctil al borde
+            // Activar Dash solo con Shift (arranque en PC/gamepad) o tecla Ctrl/B/Cuadrado (nunca por presionar fuerte en móvil)
             const wantsDash =
                 (dashKeyNow && !this._wasDashKeyActive) ||
-                (boostNow && !this._wasBoostActive && this.isMoving) ||
-                (mobileSprintRim && !this._wasMobileSprintRim && this.isMoving)
+                (boostNow && !this._wasBoostActive && this.isMoving)
 
             this._wasBoostActive = boostNow
             this._wasDashKeyActive = dashKeyNow
-            this._wasMobileSprintRim = mobileSprintRim
 
             if(wantsDash && this._dashCooldown <= 0)
             {
@@ -495,13 +505,14 @@ export class PhysicsVehicle
 
             if(this.isMoving)
             {
+                const speedScale = this.isSprinting ? 1.0 : mobileJoyMagnitude
                 if(this.isSwimming)
                 {
-                    this._targetMoveSpeed = this.isSprinting ? this.swimSprintSpeed : this.swimSpeed
+                    this._targetMoveSpeed = (this.isSprinting ? this.swimSprintSpeed : this.swimSpeed) * speedScale
                 }
                 else
                 {
-                    this._targetMoveSpeed = this.isSprinting ? this.runSpeed : this.walkSpeed
+                    this._targetMoveSpeed = (this.isSprinting ? this.runSpeed : this.walkSpeed) * speedScale
                 }
                 this._currentMoveSpeed += (this._targetMoveSpeed - this._currentMoveSpeed) * Math.min(1, delta * (this.isSwimming ? 10.0 : 18.0))
 
@@ -604,7 +615,8 @@ export class PhysicsVehicle
 
             // Salto (solo fuera del modo nado)
             const touchTapJump = this.game.player?.suspensions?.[0] === 'high'
-            if((jumpAction?.active || touchTapJump) && this.isGrounded && !this.isSwimming)
+            const mobileJumpBtn = !!(mobileJoy?.enabled && mobileJoy.jumpActive)
+            if((jumpAction?.active || touchTapJump || mobileJumpBtn) && this.isGrounded && !this.isSwimming)
             {
                 this.verticalVelocity = this.jumpForce
                 this.isGrounded = false
