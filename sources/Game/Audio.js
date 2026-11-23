@@ -107,6 +107,8 @@ export class Audio
             this.groups.set(groupName, group)
         }
 
+        const isMobile = this.game.quality?.level === 1
+        const shouldPreload = isMobile ? false : (options.preload ?? true)
         const item = {}
         item.howl = new Howl({
             src: [ options.path ],
@@ -114,7 +116,7 @@ export class Audio
             autoplay: (this.initiated && options.autoplay) ?? false,
             loop: options.loop ?? false,
             volume: options.volume ?? 0.5,
-            preload: options.preload ?? true,
+            preload: shouldPreload,
             onloaderror: () =>
             {
                 console.error(`Audio > Load error > ${options.path}`, options)
@@ -134,7 +136,7 @@ export class Audio
         item.lastPlay = -Infinity
         item.onPlaying = options.onPlaying ?? null
         item.onPlay = options.onPlay ?? null
-        item.loaded = options.preload ?? true
+        item.loaded = shouldPreload
         item.autoplay = options.autoplay ?? false
         item.playing = (this.initiated && options.autoplay) ?? false
         item.id = group.items.length

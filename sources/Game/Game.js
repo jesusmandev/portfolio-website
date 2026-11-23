@@ -94,10 +94,13 @@ export class Game
         this.rendering = new Rendering()
         await this.rendering.setRenderer()
 
-        const compressed = !!import.meta.env.VITE_COMPRESSED
+        // Usar siempre modelos/texturas comprimidos por defecto (también en Vercel/GitHub Pages donde VITE_COMPRESSED no esté en env)
+        const compressed = import.meta.env.VITE_COMPRESSED !== '0' && import.meta.env.VITE_COMPRESSED !== 'false'
         const compressedModelSuffix = compressed ? '-compressed' : ''
         const compressedTextureFormat = compressed ? 'textureKtx' : 'texture'
         const compressedTextureExtension = compressed ? 'ktx' : 'png'
+        const isMobile = this.quality.level === 1
+        const characterAnimPath = isMobile ? `personaje/animations-mobile.glb${cb}` : `personaje/animations.glb${cb}`
 
         const cb = '?cb=1'
         this.resources = await this.resourcesLoader.load([
@@ -135,7 +138,7 @@ export class Game
                 [ 'bushesReferences',                      `bushes/bushesReferences${compressedModelSuffix}.glb${cb}`,                           'gltf' ],
                 [ 'vehicle',                               `vehicle/default${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'characterModel',                        `personaje/model.glb${cb}`,                                                           'gltf' ],
-                [ 'characterAnimations',                   `personaje/animations.glb${cb}`,                                                      'gltf' ],
+                [ 'characterAnimations',                   characterAnimPath,                                                                    'gltf' ],
                 [ 'joystickControllerModel',               `Joystick/Videogame Controller.glb${cb}`,                                             'gltf' ],
                 [ 'bridgeModel',                           `puente/puente.glb${cb}`,                                                             'gltf' ],
                 [ 'waterNormalsTexture',                   `textures/waternormals.jpg${cb}`,                                                     'texture', (resource) => { resource.wrapS = THREE.RepeatWrapping; resource.wrapT = THREE.RepeatWrapping; } ],
@@ -158,7 +161,6 @@ export class Game
                 [ 'cherryTreesReferencesModel',            `cherryTrees/cherryTreesReferences${compressedModelSuffix}.glb${cb}`,                 'gltf' ],
                 [ 'sceneryModel',                          `scenery/scenery${compressedModelSuffix}.glb${cb}`,                                   'gltf' ],
                 [ 'areasModel',                            `areas/areas${compressedModelSuffix}.glb${cb}`,                                       'gltf' ],
-                [ 'statueModel',                           `estatua/estatua-v1.glb${cb}`,                                                        'gltf' ],
                 [ 'poleLightsModel',                       `poleLights/poleLights${compressedModelSuffix}.glb${cb}`,                             'gltf' ],
                 [ 'satanStarTexture',                      `areas/satanStar.${compressedTextureExtension}${cb}`,                                 compressedTextureFormat, (resource) => { resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false } ],
                 [ 'tornadoPathReferencesModel',            `tornado/tornadoPathReferences${compressedModelSuffix}.glb${cb}`,                     'gltf' ],
@@ -210,14 +212,14 @@ export class Game
 
         const triggerReveal = () =>
         {
-            if(this.world.intro && this.world.intro.circle && this.world.intro.circle.smoothedProgress.value < 0.96)
+            if(this.world.intro && this.world.intro.circle && this.world.intro.circle.smoothedProgress.value < 0.95)
             {
                 requestAnimationFrame(triggerReveal)
                 return
             }
             this.reveal.updateStep(0)
         }
-        this.ticker.wait(5, triggerReveal)
+        this.ticker.wait(1, triggerReveal)
 
         // Debug achievement
         if(this.debug.active)

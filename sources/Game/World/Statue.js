@@ -68,43 +68,67 @@ export class Statue
         this.group.rotation.y = this.rotationY
         this.game.scene.add(this.group)
 
-        const rawModel = this.game.resources.statueModel
-        if(!rawModel)
-        {
-            console.warn('[Statue] statueModel resource not found')
-            return
-        }
-
-        const model = rawModel.scene.clone()
-
-        const box = new THREE.Box3().setFromObject(model)
-        const size = box.getSize(new THREE.Vector3())
-        const center = box.getCenter(new THREE.Vector3())
-
-        // Align base to Y = 0 and center X/Z
-        model.position.set(-center.x, -box.min.y, -center.z)
-
-        // Scale to desired height
-        const scaleFactor = this.scale / (size.y || 1)
-        model.scale.setScalar(scaleFactor)
-
-        this.scaledSize = size.clone().multiplyScalar(scaleFactor)
-
-        model.traverse((child) =>
-        {
-            if(child.isMesh)
-            {
-                child.castShadow = true
-                child.receiveShadow = true
-            }
-        })
-
-        this.group.add(model)
-
         // Subtle ambient blue/cyan point light at base
         const blueGlow = new THREE.PointLight(0x00a0ff, 1.2, 12, 1.8)
         blueGlow.position.set(0, 1.8, 1.2)
         this.group.add(blueGlow)
+
+        const attachStatueScene = (rawModel) =>
+        {
+            if(!rawModel || !this.group)
+                return
+
+            const model = rawModel.scene.clone()
+
+            const box = new THREE.Box3().setFromObject(model)
+            const size = box.getSize(new THREE.Vector3())
+            const center = box.getCenter(new THREE.Vector3())
+
+            // Align base to Y = 0 and center X/Z
+            model.position.set(-center.x, -box.min.y, -center.z)
+
+            // Scale to desired height
+            const scaleFactor = this.scale / (size.y || 1)
+            model.scale.setScalar(scaleFactor)
+
+            this.scaledSize = size.clone().multiplyScalar(scaleFactor)
+
+            model.traverse((child) =>
+            {
+                if(child.isMesh)
+                {
+                    child.castShadow = true
+                    child.receiveShadow = true
+                }
+            })
+
+            this.group.add(model)
+        }
+
+        const cachedModel = this.game.resources?.statueModel
+        if(cachedModel)
+        {
+            attachStatueScene(cachedModel)
+        }
+        else
+        {
+            // Carga diferida en segundo plano para no bloquear la pantalla inicial ("J") en móvil
+            const loader = this.game.resourcesLoader.getLoader('gltf')
+            loader.load(
+                'estatua/estatua-v1.glb?cb=1',
+                (gltf) =>
+                {
+                    if(this.game.resources)
+                        this.game.resources.statueModel = gltf
+                    attachStatueScene(gltf)
+                },
+                undefined,
+                (err) =>
+                {
+                    console.warn('[Statue] Error lazy-loading statueModel:', err)
+                }
+            )
+        }
     }
 
     createPhysics()

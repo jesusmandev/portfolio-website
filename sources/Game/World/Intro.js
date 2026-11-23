@@ -661,8 +661,8 @@ export class Intro
             startDummy,
             {
                 scale: 1,
-                duration: 1.8 / speedMultiplier,
-                delay: 0.9 / speedMultiplier,
+                duration: 1.2 / speedMultiplier,
+                delay: 0.35 / speedMultiplier,
                 ease: 'elastic.out(0.65, 0.55)',
                 overwrite: true,
                 onUpdate: () =>
@@ -678,8 +678,8 @@ export class Intro
             soundDummy,
             {
                 scale: 1,
-                duration: 1.6 / speedMultiplier,
-                delay: 1.05 / speedMultiplier,
+                duration: 1.1 / speedMultiplier,
+                delay: 0.45 / speedMultiplier,
                 ease: 'elastic.out(0.65, 0.55)',
                 overwrite: true,
                 onUpdate: () =>
@@ -736,7 +736,8 @@ export class Intro
     update()
     {
         const diff = this.circle.progress - this.circle.smoothedProgress.value
-        this.circle.smoothedProgress.value += diff * Math.min(1, this.game.ticker.delta * 4.5)
+        const catchupSpeed = this.circle.progress >= 1 ? 14.0 : 8.5
+        this.circle.smoothedProgress.value += diff * Math.min(1, this.game.ticker.delta * catchupSpeed)
 
         const elapsed = this.game.ticker.elapsed
 
