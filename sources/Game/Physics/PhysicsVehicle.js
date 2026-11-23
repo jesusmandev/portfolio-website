@@ -70,6 +70,11 @@ export class PhysicsVehicle
         this._targetMoveSpeed = 0
         this._currentMoveSpeed = 0
         this.externalVelocity = new THREE.Vector3()
+        this.panicOverride = {
+            active: false,
+            dir: new THREE.Vector3(0, 0, 1),
+            speed: 16.5
+        }
 
         // Vectores reutilizables (evitan GC en cada frame)
         this._tmpQuat = new THREE.Quaternion()
@@ -305,6 +310,7 @@ export class PhysicsVehicle
         this.isDashing = false
         this._dashTimer = 0
         this._dashCooldown = 0
+        this.panicOverride.active = false
         this.characterController?.enableSnapToGround(0.75)
 
         if(this.game.world?.visualVehicle)
@@ -384,7 +390,60 @@ export class PhysicsVehicle
         const fx = this.game.world?.gameFeelFX
         const isInShallowWater = !this.isSwimming && iceRatio < 0.5 && this.waterDepth > 0.06
 
-        if(controlsActive)
+        if(this.panicOverride?.active)
+        {
+            // Huida automática en pánico (p. ej. perseguido por las vacas)
+            this._moveDir.copy(this.panicOverride.dir)
+            this._moveDir.y = 0
+            if(this._moveDir.lengthSq() > 0.0001)
+                this._moveDir.normalize()
+            else
+                this._moveDir.set(0, 0, 1)
+
+            this.isMoving = true
+            this.isSprinting = true
+            this.isDashing = false
+            this._dashTimer = 0
+
+            const targetSpd = this.isSwimming
+                ? this.swimSprintSpeed
+                : (this.panicOverride.speed || 16.5)
+            this._currentMoveSpeed += (targetSpd - this._currentMoveSpeed) * Math.min(1, delta * 18.0)
+
+            const targetAngle = Math.atan2(this._moveDir.x, this._moveDir.z)
+            this._targetQuat.setFromAxisAngle(this._yAxis, targetAngle)
+            this._tmpQuat.slerp(this._targetQuat, Math.min(1, delta * this.turnSpeed))
+            this.chassisBody.setNextKinematicRotation({
+                x: this._tmpQuat.x,
+                y: this._tmpQuat.y,
+                z: this._tmpQuat.z,
+                w: this._tmpQuat.w
+            })
+
+            this._moveDir.multiplyScalar(this._currentMoveSpeed * delta)
+
+            // Pasos rápidos y polvo durante la carrera en pánico
+            if(this.isGrounded && !this.isSwimming)
+            {
+                this._stepTimer += delta
+                if(this._stepTimer >= 0.21)
+                {
+                    this._stepTimer = 0
+                    this._feetPos.set(translation.x, currentBottomY, translation.z)
+                    if(isInShallowWater)
+                    {
+                        this.proceduralSound.playWaterStep(true)
+                        fx?.emitWaterSplash(this._feetPos, 0.55)
+                    }
+                    else
+                    {
+                        this.proceduralSound.playRunStep()
+                        fx?.emitFootDust(this._feetPos, true)
+                    }
+                }
+            }
+        }
+        else if(controlsActive)
         {
             const camera = this.game.view?.camera
             this._forwardVec.set(0, 0, -1)

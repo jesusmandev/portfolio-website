@@ -38,6 +38,7 @@ import { FlagsExhibition } from './FlagsExhibition.js'
 import { Skills } from './Skills.js'
 import { TextFreelancer } from './TextFreelancer.js'
 import { GameFeelFX } from './GameFeelFX.js'
+import { Cows } from './Cows.js'
 
 export class World
 {
@@ -199,6 +200,9 @@ export class World
                 fontSize: 1.85,
                 fontDepth: 0.45
             })
+
+            // 4 vacas 3D que recorren todo el mapa y pastan en el césped (carga diferida)
+            this.cows = new Cows({ count: 4 })
         }
         else if(step === 2)
         {

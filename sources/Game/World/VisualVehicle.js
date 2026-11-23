@@ -265,8 +265,10 @@ export class VisualVehicle
             return
 
         const isLoop = name.endsWith('_Loop') || name === 'Sword_Idle' || name === 'A_TPose'
-        const isSwimTransition = name.startsWith('Swim_') || (this.currentAction && this.currentAction.getClip().name.startsWith('Swim_'))
-        const fadeDuration = isSwimTransition ? 0.20 : 0.09
+        const prevClipName = this.currentAction ? this.currentAction.getClip().name : null
+        const isSwimTransition = name.startsWith('Swim_') || (prevClipName && prevClipName.startsWith('Swim_'))
+        const isRecoveringFromFall = prevClipName === 'Death01' && name === 'Idle_Loop'
+        const fadeDuration = isRecoveringFromFall ? 0.5 : (isSwimTransition ? 0.20 : 0.09)
 
         action.reset()
         action.setLoop(isLoop ? THREE.LoopRepeat : THREE.LoopOnce, isLoop ? Infinity : 1)
@@ -411,7 +413,11 @@ export class VisualVehicle
             if(physicalVehicle.isGrounded || currentClip !== 'Jump_Loop')
             {
                 if(physicalVehicle.isSprinting)
+                {
                     this.playAction('Sprint_Loop')
+                    if(this.actions['Sprint_Loop'])
+                        this.actions['Sprint_Loop'].timeScale = physicalVehicle.panicOverride?.active ? 1.45 : 1.15
+                }
                 else
                     this.playAction('Walk_Loop')
             }

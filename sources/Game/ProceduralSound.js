@@ -489,4 +489,60 @@ export class ProceduralSound
         osc.start(now)
         osc.stop(now + 0.2)
     }
+
+    /**
+     * Mugido suave y cálido de vaca ("Muuu") con volumen atenuado por distancia
+     */
+    playCowMoo(volumeScale = 0.5, pitchMod = 1.0)
+    {
+        if(!this._initCtx())
+            return
+
+        const vol = Math.min(Math.max(volumeScale, 0.03), 1.0)
+        if(vol < 0.04)
+            return
+
+        const now = this._ctx.currentTime
+        const duration = 0.85 + Math.random() * 0.35
+
+        // Oscilador principal (sawtooth filtrado = timbre vocal bovino cálido)
+        const osc = this._ctx.createOscillator()
+        const subOsc = this._ctx.createOscillator()
+        const filter = this._ctx.createBiquadFilter()
+        const gain = this._ctx.createGain()
+
+        const baseFreq = (118 + Math.random() * 20) * pitchMod
+        osc.type = 'sawtooth'
+        osc.frequency.setValueAtTime(baseFreq * 0.86, now)
+        osc.frequency.linearRampToValueAtTime(baseFreq * 1.12, now + duration * 0.28)
+        osc.frequency.linearRampToValueAtTime(baseFreq * 0.96, now + duration * 0.72)
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.72, now + duration)
+
+        subOsc.type = 'triangle'
+        subOsc.frequency.setValueAtTime(baseFreq * 0.5, now)
+        subOsc.frequency.linearRampToValueAtTime(baseFreq * 0.56, now + duration * 0.28)
+        subOsc.frequency.exponentialRampToValueAtTime(baseFreq * 0.38, now + duration)
+
+        // Formante vocal ("mm-uuu")
+        filter.type = 'lowpass'
+        filter.frequency.setValueAtTime(260, now)
+        filter.frequency.linearRampToValueAtTime(620, now + duration * 0.32)
+        filter.frequency.exponentialRampToValueAtTime(220, now + duration)
+        filter.Q.value = 3.2
+
+        gain.gain.setValueAtTime(0.001, now)
+        gain.gain.linearRampToValueAtTime(0.16 * vol, now + 0.12)
+        gain.gain.setValueAtTime(0.14 * vol, now + duration * 0.65)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+
+        osc.connect(filter)
+        subOsc.connect(filter)
+        filter.connect(gain)
+        gain.connect(this._ctx.destination)
+
+        osc.start(now)
+        subOsc.start(now)
+        osc.stop(now + duration + 0.03)
+        subOsc.stop(now + duration + 0.03)
+    }
 }
