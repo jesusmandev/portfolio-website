@@ -99,6 +99,7 @@ export class VisualVehicle
         this.currentAction = null
         this._introState = 'falling'
         this._feetOffsetY = 0
+        this._swimBlend = 0
 
         this.setParts()
         this.setAnimations()
@@ -208,11 +209,12 @@ export class VisualVehicle
             this.actions[clip.name] = this.mixer.clipAction(clip)
         }
 
-        // Pre-calentar poses principales
+        // Pre-calentar poses principales (incluyendo nado)
         const posesToWarm = [
             'Idle_Loop', 'Walk_Loop', 'Sprint_Loop', 'Jump_Loop',
             'Jump_Start', 'Jump_Land', 'Roll', 'Crouch_Idle_Loop',
-            'Sword_Block', 'Yes', 'Dance_Loop'
+            'Sword_Block', 'Yes', 'Dance_Loop',
+            'Swim_Fwd_Loop', 'Swim_Idle_Loop'
         ]
         for(const name of posesToWarm)
         {
@@ -263,7 +265,8 @@ export class VisualVehicle
             return
 
         const isLoop = name.endsWith('_Loop') || name === 'Sword_Idle' || name === 'A_TPose'
-        const fadeDuration = 0.09
+        const isSwimTransition = name.startsWith('Swim_') || (this.currentAction && this.currentAction.getClip().name.startsWith('Swim_'))
+        const fadeDuration = isSwimTransition ? 0.20 : 0.09
 
         action.reset()
         action.setLoop(isLoop ? THREE.LoopRepeat : THREE.LoopOnce, isLoop ? Infinity : 1)
@@ -274,6 +277,8 @@ export class VisualVehicle
             timeScale = 1.35
         else if(name === 'Sprint_Loop')
             timeScale = 1.15
+        else if(name === 'Swim_Fwd_Loop')
+            timeScale = 1.10
 
         action.timeScale = timeScale
 
@@ -381,10 +386,23 @@ export class VisualVehicle
             this.playAction('Sword_Block')
         }
 
-        // Locomoción automática según el estado físico del personaje
+        // Locomoción automática según el estado físico del personaje (incluye nado durante inundación)
         const currentClip = this.currentAction ? this.currentAction.getClip().name : null
 
-        if(physicalVehicle.justJumped)
+        if(physicalVehicle.isSwimming)
+        {
+            if(physicalVehicle.isMoving)
+            {
+                this.playAction('Swim_Fwd_Loop')
+                if(this.actions['Swim_Fwd_Loop'])
+                    this.actions['Swim_Fwd_Loop'].timeScale = physicalVehicle.isSprinting ? 1.4 : 1.05
+            }
+            else
+            {
+                this.playAction('Swim_Idle_Loop')
+            }
+        }
+        else if(physicalVehicle.justJumped)
         {
             this.playAction('Jump_Loop')
         }
@@ -398,16 +416,34 @@ export class VisualVehicle
                     this.playAction('Walk_Loop')
             }
         }
-        else if(physicalVehicle.isGrounded)
+        else if(physicalVehicle.isGrounded || currentClip === 'Swim_Fwd_Loop' || currentClip === 'Swim_Idle_Loop')
         {
-            if(currentClip === 'Walk_Loop' || currentClip === 'Sprint_Loop' || currentClip === 'Jump_Loop')
+            if(
+                currentClip === 'Walk_Loop' ||
+                currentClip === 'Sprint_Loop' ||
+                currentClip === 'Jump_Loop' ||
+                currentClip === 'Swim_Fwd_Loop' ||
+                currentClip === 'Swim_Idle_Loop'
+            )
             {
                 this.playAction('Idle_Loop')
             }
         }
 
-        // Sincronizar posición (pies sobre el suelo) y rotación del modelo 3D
-        const targetMeshY = physicalVehicle.capsuleBottomY - (this._feetOffsetY || 0)
+        // Sincronizar posición y rotación del modelo 3D:
+        // - En tierra: pies exactos sobre el suelo (capsuleBottomY)
+        // - En agua (nadando): Swim_Fwd_Loop y Swim_Idle_Loop tienen las caderas debajo de Y=0 y espalda/cabeza arriba,
+        //   así que al alinear la raíz con la superficie del agua queda exactamente mitad adentro y mitad afuera.
+        const groundMeshY = physicalVehicle.capsuleBottomY - (this._feetOffsetY || 0)
+        const targetSwimBlend = physicalVehicle.isSwimming ? 1 : 0
+        this._swimBlend += (targetSwimBlend - this._swimBlend) * Math.min(1, delta * 7.5)
+
+        const waterY = this.game.water?.surfaceElevation ?? -0.3
+        const swimBob = Math.sin((this.game.ticker.elapsed || 0) * 2.8) * 0.04
+        const swimSurfaceOffset = physicalVehicle.isMoving ? -0.04 : 0.04
+        const swimMeshY = waterY + swimSurfaceOffset + swimBob
+
+        const targetMeshY = groundMeshY + (swimMeshY - groundMeshY) * this._swimBlend
         this.parts.chassis.position.set(
             physicalVehicle.position.x,
             targetMeshY,
@@ -415,14 +451,14 @@ export class VisualVehicle
         )
         this.parts.chassis.quaternion.copy(physicalVehicle.quaternion)
 
-        // Huellas sobre el terreno / nieve / pasto
+        // Huellas sobre el terreno / nieve / pasto (solo fuera del agua)
         this.mainGroundTrack.update(
             new THREE.Vector3(physicalVehicle.position.x, targetMeshY, physicalVehicle.position.z),
-            physicalVehicle.isGrounded
+            physicalVehicle.isGrounded && !physicalVehicle.isSwimming
         )
 
-        // Estelas al correr rápido (Sprint / Shift)
-        const trailAlpha = physicalVehicle.isMoving && physicalVehicle.isSprinting && physicalVehicle.isGrounded ? 1 : 0
+        // Estelas al correr rápido (solo en tierra)
+        const trailAlpha = physicalVehicle.isMoving && physicalVehicle.isSprinting && physicalVehicle.isGrounded && !physicalVehicle.isSwimming ? 1 : 0
         this.boostTrails.leftReference.getWorldPosition(this.boostTrails.left.position)
         this.boostTrails.left.alpha = trailAlpha
         this.boostTrails.rightReference.getWorldPosition(this.boostTrails.right.position)

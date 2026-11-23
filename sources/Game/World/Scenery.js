@@ -19,8 +19,8 @@ export class Scenery
             // Add
             if(typeof child.userData.prevent === 'undefined' || child.userData.prevent === false)
             {
-                // Omitir la carretera negra (refRoad) y todos los bordillos rojos con blanco de carreras (Cube...)
-                if(child.name.toLowerCase().includes('road') || /^cube/i.test(child.name))
+                // Omitir la carretera negra (refRoad), bordillos de carreras (Cube...) y las baldosas blancas junto a la estatua (slabes)
+                if(child.name.toLowerCase().includes('road') || /^cube/i.test(child.name) || /^slabes/i.test(child.name))
                 {
                     child.visible = false
                     if(child.parent)

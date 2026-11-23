@@ -614,10 +614,30 @@ export class SocialIconsArea
                 if(submitBtn) submitBtn.disabled = true
 
                 const formData = new FormData(form)
+                const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY
+
+                if(!accessKey)
+                {
+                    if(statusDiv)
+                    {
+                        statusDiv.textContent = 'Missing Web3Forms access key (VITE_WEB3FORMS_ACCESS_KEY).'
+                        statusDiv.style.color = '#ef4444'
+                    }
+                    if(submitBtn) submitBtn.disabled = false
+                    return
+                }
+
+                formData.append('access_key', accessKey)
+                formData.append('from_name', 'Jesús Martínez — Portfolio 3D')
+                const senderEmail = formData.get('email')
+                if(senderEmail)
+                    formData.append('replyto', senderEmail)
+
                 try
                 {
                     const res = await fetch('https://api.web3forms.com/submit', {
                         method: 'POST',
+                        headers: { Accept: 'application/json' },
                         body: formData
                     })
                     const data = await res.json()
@@ -642,12 +662,10 @@ export class SocialIconsArea
                 }
                 catch(err)
                 {
-                    // Fallback to mailto
-                    window.location.href = `mailto:jesusmandev@gmail.com?subject=${encodeURIComponent(formData.get('subject'))}&body=${encodeURIComponent(formData.get('message'))}`
                     if(statusDiv)
                     {
-                        statusDiv.textContent = 'Opening your email client...'
-                        statusDiv.style.color = '#38bdf8'
+                        statusDiv.textContent = 'Connection error. Please try again in a moment.'
+                        statusDiv.style.color = '#ef4444'
                     }
                 }
                 finally

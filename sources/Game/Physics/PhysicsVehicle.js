@@ -16,6 +16,8 @@ export class PhysicsVehicle
         this.targetHeight = 2.6
         this.walkSpeed = 7.5
         this.runSpeed = 16.0
+        this.swimSpeed = 5.4
+        this.swimSprintSpeed = 9.2
         this.turnSpeed = 18.0
         this.gravity = -24.0
         this.jumpForce = 9.5
@@ -47,6 +49,8 @@ export class PhysicsVehicle
         this.isGrounded = false
         this.isMoving = false
         this.isSprinting = false
+        this.isSwimming = false
+        this.waterDepth = 0
         this.justJumped = false
         this.justLanded = false
         this.verticalVelocity = 0
@@ -281,6 +285,8 @@ export class PhysicsVehicle
         this._currentMoveSpeed = 0
         this.externalVelocity.set(0, 0, 0)
         this.isGrounded = false
+        this.isSwimming = false
+        this.characterController?.enableSnapToGround(0.75)
 
         if(this.game.world?.visualVehicle)
         {
@@ -299,6 +305,34 @@ export class PhysicsVehicle
         const translation = this.chassisBody.translation()
         const rotation = this.chassisBody.rotation()
         this._tmpQuat.set(rotation.x, rotation.y, rotation.z, rotation.w)
+
+        // Detectar inmersión en agua (inundación por lluvia o ríos/estanques) con histéresis suave
+        const waterY = this.game.water?.surfaceElevation ?? -0.3
+        const iceRatio = this.game.world?.waterSurface?.iceRatio?.value ?? 0
+        const currentBottomY = translation.y - this.capsuleTotalHalf
+        this.waterDepth = waterY - currentBottomY
+
+        const wasSwimming = this.isSwimming
+        if(iceRatio >= 0.5)
+        {
+            this.isSwimming = false
+        }
+        else if(!this.isSwimming && this.waterDepth >= 0.65)
+        {
+            this.isSwimming = true
+        }
+        else if(this.isSwimming && this.waterDepth < 0.48)
+        {
+            this.isSwimming = false
+        }
+
+        if(this.isSwimming !== wasSwimming && this.characterController)
+        {
+            if(this.isSwimming)
+                this.characterController.disableSnapToGround()
+            else
+                this.characterController.enableSnapToGround(0.75)
+        }
 
         this._moveDir.set(0, 0, 0)
         this.justJumped = false
@@ -382,14 +416,21 @@ export class PhysicsVehicle
 
             if(this.isMoving)
             {
-                this._targetMoveSpeed = this.isSprinting ? this.runSpeed : this.walkSpeed
-                this._currentMoveSpeed += (this._targetMoveSpeed - this._currentMoveSpeed) * Math.min(1, delta * 18.0)
+                if(this.isSwimming)
+                {
+                    this._targetMoveSpeed = this.isSprinting ? this.swimSprintSpeed : this.swimSpeed
+                }
+                else
+                {
+                    this._targetMoveSpeed = this.isSprinting ? this.runSpeed : this.walkSpeed
+                }
+                this._currentMoveSpeed += (this._targetMoveSpeed - this._currentMoveSpeed) * Math.min(1, delta * (this.isSwimming ? 10.0 : 18.0))
 
                 // Rotar suavemente hacia la dirección de movimiento
                 const targetAngle = Math.atan2(this._moveDir.x, this._moveDir.z)
                 this._targetQuat.setFromAxisAngle(this._yAxis, targetAngle)
 
-                const turnRate = Math.min(1, delta * this.turnSpeed)
+                const turnRate = Math.min(1, delta * (this.isSwimming ? this.turnSpeed * 0.55 : this.turnSpeed))
                 this._tmpQuat.slerp(this._targetQuat, turnRate)
 
                 this.chassisBody.setNextKinematicRotation({
@@ -404,11 +445,11 @@ export class PhysicsVehicle
             else
             {
                 this._targetMoveSpeed = 0
-                this._currentMoveSpeed += (0 - this._currentMoveSpeed) * Math.min(1, delta * 16.0)
+                this._currentMoveSpeed += (0 - this._currentMoveSpeed) * Math.min(1, delta * (this.isSwimming ? 8.0 : 16.0))
             }
 
-            // Sonidos procedurales de pasos
-            if(this.isMoving && this.isGrounded)
+            // Sonidos procedurales de pasos (solo al caminar/correr fuera del agua)
+            if(this.isMoving && this.isGrounded && !this.isSwimming)
             {
                 this._stepTimer += delta
                 const stepInterval = this.isSprinting ? 0.25 : 0.42
@@ -426,9 +467,9 @@ export class PhysicsVehicle
                 this._stepTimer = 0.38
             }
 
-            // Salto (Barra espaciadora / botón de salto / tap en el personaje en móvil)
+            // Salto (solo fuera del modo nado)
             const touchTapJump = this.game.player?.suspensions?.[0] === 'high'
-            if((jumpAction?.active || touchTapJump) && this.isGrounded)
+            if((jumpAction?.active || touchTapJump) && this.isGrounded && !this.isSwimming)
             {
                 this.verticalVelocity = this.jumpForce
                 this.isGrounded = false
@@ -446,13 +487,24 @@ export class PhysicsVehicle
         const wasGrounded = this.isGrounded
         this.justLanded = false
 
-        // Gravedad
-        this.verticalVelocity += this.gravity * delta
-        if(this.verticalVelocity < -40)
-            this.verticalVelocity = -40
+        // Gravedad o flotabilidad suave al nadar (mantiene la cápsula siguiendo el nivel del agua y baja al drenar)
+        if(this.isSwimming)
+        {
+            const bob = Math.sin((this.game.ticker.elapsed || 0) * 2.8) * 0.04
+            const desiredBottomY = waterY - 0.85 + bob
+            const desiredCenterY = desiredBottomY + this.capsuleTotalHalf
+            const yError = desiredCenterY - translation.y
+            this.verticalVelocity = Math.max(-5.0, Math.min(5.5, yError * 6.0))
+        }
+        else
+        {
+            this.verticalVelocity += this.gravity * delta
+            if(this.verticalVelocity < -40)
+                this.verticalVelocity = -40
 
-        if(this.isGrounded && this.verticalVelocity < 0)
-            this.verticalVelocity = -0.5
+            if(this.isGrounded && this.verticalVelocity < 0)
+                this.verticalVelocity = -0.5
+        }
 
         // Amortiguar impulsos externos
         if(this.externalVelocity.lengthSq() > 0.001)
