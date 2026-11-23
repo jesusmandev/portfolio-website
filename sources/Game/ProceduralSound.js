@@ -283,4 +283,210 @@ export class ProceduralSound
         noiseGain.connect(this._ctx.destination)
         noise.start(now)
     }
+
+    /**
+     * Paso chapoteando en agua poco profunda
+     */
+    playWaterStep(isRunning = false)
+    {
+        if(!this._initCtx())
+            return
+
+        const now = this._ctx.currentTime
+        const duration = isRunning ? 0.14 : 0.10
+        const bufferSize = Math.floor(this._ctx.sampleRate * duration)
+        const buffer = this._ctx.createBuffer(1, bufferSize, this._ctx.sampleRate)
+        const data = buffer.getChannelData(0)
+        for(let i = 0; i < bufferSize; i++)
+        {
+            const env = Math.sin((i / bufferSize) * Math.PI) * Math.pow(1 - i / bufferSize, 0.9)
+            data[i] = (Math.random() * 2 - 1) * env
+        }
+
+        const noise = this._ctx.createBufferSource()
+        noise.buffer = buffer
+
+        const filter = this._ctx.createBiquadFilter()
+        filter.type = 'bandpass'
+        filter.frequency.setValueAtTime((isRunning ? 1500 : 1200) + Math.random() * 400, now)
+        filter.frequency.exponentialRampToValueAtTime(550, now + duration)
+        filter.Q.value = 1.4
+
+        const gain = this._ctx.createGain()
+        gain.gain.setValueAtTime(isRunning ? 0.24 : 0.15, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+
+        noise.connect(filter)
+        filter.connect(gain)
+        gain.connect(this._ctx.destination)
+        noise.start(now)
+
+        // Pequeña burbuja/gota líquida
+        const osc = this._ctx.createOscillator()
+        const oscGain = this._ctx.createGain()
+        const f0 = (isRunning ? 360 : 300) + Math.random() * 140
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(f0, now)
+        osc.frequency.exponentialRampToValueAtTime(f0 * 1.9, now + 0.045)
+
+        oscGain.gain.setValueAtTime(isRunning ? 0.08 : 0.05, now)
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05)
+
+        osc.connect(oscGain)
+        oscGain.connect(this._ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.055)
+    }
+
+    /**
+     * Salpicadura al entrar al agua o aterrizar en zona inundada
+     */
+    playWaterSplash(intensity = 1.0)
+    {
+        if(!this._initCtx())
+            return
+
+        const now = this._ctx.currentTime
+        const clamped = Math.min(Math.max(intensity, 0.25), 1.2)
+        const duration = 0.26 + clamped * 0.14
+        const bufferSize = Math.floor(this._ctx.sampleRate * duration)
+        const buffer = this._ctx.createBuffer(1, bufferSize, this._ctx.sampleRate)
+        const data = buffer.getChannelData(0)
+        for(let i = 0; i < bufferSize; i++)
+        {
+            const t = i / bufferSize
+            const env = Math.min(1, t * 14) * Math.pow(1 - t, 1.4)
+            data[i] = (Math.random() * 2 - 1) * env
+        }
+
+        const noise = this._ctx.createBufferSource()
+        noise.buffer = buffer
+
+        const filter = this._ctx.createBiquadFilter()
+        filter.type = 'bandpass'
+        filter.frequency.setValueAtTime(1400 + Math.random() * 350, now)
+        filter.frequency.exponentialRampToValueAtTime(380, now + duration)
+        filter.Q.value = 0.9
+
+        const gain = this._ctx.createGain()
+        gain.gain.setValueAtTime(0.32 * clamped, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+
+        noise.connect(filter)
+        filter.connect(gain)
+        gain.connect(this._ctx.destination)
+        noise.start(now)
+
+        // Plop grave de inmersión
+        const osc = this._ctx.createOscillator()
+        const oscGain = this._ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(220, now)
+        osc.frequency.exponentialRampToValueAtTime(520, now + 0.09)
+
+        oscGain.gain.setValueAtTime(0.14 * clamped, now)
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.11)
+
+        osc.connect(oscGain)
+        oscGain.connect(this._ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.12)
+    }
+
+    /**
+     * Brazada suave al nadar sobre el agua
+     */
+    playSwimStroke(isSprinting = false)
+    {
+        if(!this._initCtx())
+            return
+
+        const now = this._ctx.currentTime
+        const duration = isSprinting ? 0.20 : 0.26
+        const bufferSize = Math.floor(this._ctx.sampleRate * duration)
+        const buffer = this._ctx.createBuffer(1, bufferSize, this._ctx.sampleRate)
+        const data = buffer.getChannelData(0)
+        for(let i = 0; i < bufferSize; i++)
+        {
+            const t = i / bufferSize
+            const env = Math.sin(t * Math.PI)
+            data[i] = (Math.random() * 2 - 1) * env
+        }
+
+        const noise = this._ctx.createBufferSource()
+        noise.buffer = buffer
+
+        const filter = this._ctx.createBiquadFilter()
+        filter.type = 'bandpass'
+        filter.frequency.setValueAtTime(520 + Math.random() * 140, now)
+        filter.frequency.linearRampToValueAtTime(isSprinting ? 1350 : 1050, now + duration * 0.45)
+        filter.frequency.exponentialRampToValueAtTime(420, now + duration)
+        filter.Q.value = 1.6
+
+        const gain = this._ctx.createGain()
+        gain.gain.setValueAtTime(0.001, now)
+        gain.gain.linearRampToValueAtTime(isSprinting ? 0.19 : 0.13, now + duration * 0.3)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+
+        noise.connect(filter)
+        filter.connect(gain)
+        gain.connect(this._ctx.destination)
+        noise.start(now)
+    }
+
+    /**
+     * Sonido de ráfaga de aire al hacer Dash / arranque de Sprint
+     */
+    playDashSound()
+    {
+        if(!this._initCtx())
+            return
+
+        const now = this._ctx.currentTime
+        const duration = 0.22
+        const bufferSize = Math.floor(this._ctx.sampleRate * duration)
+        const buffer = this._ctx.createBuffer(1, bufferSize, this._ctx.sampleRate)
+        const data = buffer.getChannelData(0)
+        for(let i = 0; i < bufferSize; i++)
+        {
+            const t = i / bufferSize
+            const env = Math.min(1, t * 18) * Math.pow(1 - t, 1.7)
+            data[i] = (Math.random() * 2 - 1) * env
+        }
+
+        const noise = this._ctx.createBufferSource()
+        noise.buffer = buffer
+
+        const filter = this._ctx.createBiquadFilter()
+        filter.type = 'bandpass'
+        filter.frequency.setValueAtTime(650, now)
+        filter.frequency.exponentialRampToValueAtTime(2800, now + 0.07)
+        filter.frequency.exponentialRampToValueAtTime(480, now + duration)
+        filter.Q.value = 1.1
+
+        const noiseGain = this._ctx.createGain()
+        noiseGain.gain.setValueAtTime(0.26, now)
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration)
+
+        noise.connect(filter)
+        filter.connect(noiseGain)
+        noiseGain.connect(this._ctx.destination)
+        noise.start(now)
+
+        // Impulso tonal sutil que da sensación de velocidad
+        const osc = this._ctx.createOscillator()
+        const oscGain = this._ctx.createGain()
+        osc.type = 'triangle'
+        osc.frequency.setValueAtTime(190, now)
+        osc.frequency.exponentialRampToValueAtTime(540, now + 0.08)
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.18)
+
+        oscGain.gain.setValueAtTime(0.11, now)
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19)
+
+        osc.connect(oscGain)
+        oscGain.connect(this._ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.2)
+    }
 }

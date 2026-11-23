@@ -14,13 +14,26 @@ export class PhysicsVehicle
 
         // Parámetros de física del personaje humano
         this.targetHeight = 2.6
-        this.walkSpeed = 7.5
-        this.runSpeed = 16.0
-        this.swimSpeed = 5.4
-        this.swimSprintSpeed = 9.2
+        this.walkSpeed = 7.8
+        this.runSpeed = 18.5
+        this.swimSpeed = 5.6
+        this.swimSprintSpeed = 10.8
         this.turnSpeed = 18.0
         this.gravity = -24.0
         this.jumpForce = 9.5
+
+        // Parámetros de Dash (impulso rápido con estela y enfriamiento corto)
+        this.isDashing = false
+        this._dashTimer = 0
+        this._dashCooldown = 0
+        this._dashDuration = 0.24
+        this._dashCooldownDuration = 1.05
+        this._dashSpeedBonus = 15.0
+        this._dashDir = new THREE.Vector3(0, 0, 1)
+        this._dashTrailTimer = 0
+        this._wasBoostActive = false
+        this._wasDashKeyActive = false
+        this._wasMobileSprintRim = false
 
         // Compatibilidad con referencias del vehículo
         this.steeringAmplitude = 0.5
@@ -70,10 +83,13 @@ export class PhysicsVehicle
         this._camForward = new THREE.Vector3()
         this._camRight = new THREE.Vector3()
 
-        // Audio procedural de pasos, salto y caída
+        // Audio procedural de pasos, salto, agua, dash y caída
         this.proceduralSound = new ProceduralSound()
         this._stepTimer = 0.35
+        this._swimStrokeTimer = 0.25
         this._lastCollisionSoundTime = new WeakMap()
+        this._lastImpactFxTime = new WeakMap()
+        this._feetPos = new THREE.Vector3()
 
         // Debug
         if(this.game.debug.active)
@@ -286,6 +302,9 @@ export class PhysicsVehicle
         this.externalVelocity.set(0, 0, 0)
         this.isGrounded = false
         this.isSwimming = false
+        this.isDashing = false
+        this._dashTimer = 0
+        this._dashCooldown = 0
         this.characterController?.enableSnapToGround(0.75)
 
         if(this.game.world?.visualVehicle)
@@ -326,18 +345,44 @@ export class PhysicsVehicle
             this.isSwimming = false
         }
 
-        if(this.isSwimming !== wasSwimming && this.characterController)
+        if(this.isSwimming !== wasSwimming)
         {
-            if(this.isSwimming)
-                this.characterController.disableSnapToGround()
-            else
-                this.characterController.enableSnapToGround(0.75)
+            if(this.characterController)
+            {
+                if(this.isSwimming)
+                    this.characterController.disableSnapToGround()
+                else
+                    this.characterController.enableSnapToGround(0.75)
+            }
+
+            if(this.isSwimming && iceRatio < 0.5)
+            {
+                const splashIntensity = Math.min(1.2, Math.max(0.65, Math.abs(this.verticalVelocity) / 10 + 0.5))
+                this.proceduralSound.playWaterSplash(splashIntensity)
+                this._feetPos.set(translation.x, waterY, translation.z)
+                this.game.world?.gameFeelFX?.emitWaterSplash(this._feetPos, splashIntensity)
+            }
+        }
+
+        if(this._dashCooldown > 0)
+            this._dashCooldown = Math.max(0, this._dashCooldown - delta)
+
+        if(this._dashTimer > 0)
+        {
+            this._dashTimer = Math.max(0, this._dashTimer - delta)
+            this.isDashing = this._dashTimer > 0
+        }
+        else
+        {
+            this.isDashing = false
         }
 
         this._moveDir.set(0, 0, 0)
         this.justJumped = false
 
         const controlsActive = !this.game.player || this.game.player.state === Player.STATE_DEFAULT
+        const fx = this.game.world?.gameFeelFX
+        const isInShallowWater = !this.isSwimming && iceRatio < 0.5 && this.waterDepth > 0.06
 
         if(controlsActive)
         {
@@ -369,6 +414,7 @@ export class PhysicsVehicle
             const rightAction = this.game.inputs.actions.get('right')
             const leftAction = this.game.inputs.actions.get('left')
             const boostAction = this.game.inputs.actions.get('boost')
+            const dashAction = this.game.inputs.actions.get('brake')
             const jumpAction = this.game.inputs.actions.get('suspensions')
 
             if(forwardAction?.active)
@@ -397,7 +443,11 @@ export class PhysicsVehicle
                 directMoveActive = true
             }
 
-            this.isSprinting = !!(boostAction?.active || (nipple?.active && nipple.progress > 0.82))
+            const boostNow = !!boostAction?.active
+            const dashKeyNow = !!dashAction?.active
+            const mobileSprintRim = !!(nipple?.active && nipple.progress > 0.92)
+
+            this.isSprinting = !!(boostNow || (nipple?.active && nipple.progress > 0.82) || this.isDashing)
 
             if(directMoveActive)
             {
@@ -413,6 +463,35 @@ export class PhysicsVehicle
             }
 
             this.isMoving = this._moveDir.lengthSq() > 0.0001
+
+            // Activar Dash: al iniciar Sprint con Shift en movimiento, al pulsar Ctrl/B/Cuadrado, o al empujar el joystick táctil al borde
+            const wantsDash =
+                (dashKeyNow && !this._wasDashKeyActive) ||
+                (boostNow && !this._wasBoostActive && this.isMoving) ||
+                (mobileSprintRim && !this._wasMobileSprintRim && this.isMoving)
+
+            this._wasBoostActive = boostNow
+            this._wasDashKeyActive = dashKeyNow
+            this._wasMobileSprintRim = mobileSprintRim
+
+            if(wantsDash && this._dashCooldown <= 0)
+            {
+                this.isDashing = true
+                this._dashTimer = this._dashDuration
+                this._dashCooldown = this._dashCooldownDuration
+
+                if(this.isMoving)
+                    this._dashDir.copy(this._moveDir).normalize()
+                else
+                    this._dashDir.set(this.forward.x, 0, this.forward.z).normalize()
+
+                this.proceduralSound.playDashSound()
+                this._feetPos.set(translation.x, this.isSwimming ? waterY : currentBottomY, translation.z)
+                if(this.isSwimming)
+                    fx?.emitWaterSplash(this._feetPos, 0.9)
+                else
+                    fx?.emitDashBurst(this._feetPos, this._dashDir)
+            }
 
             if(this.isMoving)
             {
@@ -448,23 +527,79 @@ export class PhysicsVehicle
                 this._currentMoveSpeed += (0 - this._currentMoveSpeed) * Math.min(1, delta * (this.isSwimming ? 8.0 : 16.0))
             }
 
-            // Sonidos procedurales de pasos (solo al caminar/correr fuera del agua)
+            // Aplicar impulso extra suave del Dash + estela de chispas
+            if(this.isDashing)
+            {
+                const dashRatio = this._dashTimer / this._dashDuration
+                const dashSpeed = this._dashSpeedBonus * (0.4 + 0.6 * dashRatio) * (this.isSwimming ? 0.65 : 1.0)
+                this._moveDir.x += this._dashDir.x * dashSpeed * delta
+                this._moveDir.z += this._dashDir.z * dashSpeed * delta
+                this.isMoving = true
+
+                this._dashTrailTimer += delta
+                if(this._dashTrailTimer >= 0.035)
+                {
+                    this._dashTrailTimer = 0
+                    this._feetPos.set(translation.x, this.isSwimming ? waterY : currentBottomY, translation.z)
+                    if(this.isSwimming)
+                        fx?.emitWaterRipple(this._feetPos, 0.85)
+                    else
+                        fx?.emitDashTrail(this._feetPos, this._dashDir)
+                }
+            }
+
+            // Sonidos y partículas de pasos en tierra / chapoteo en agua poco profunda
             if(this.isMoving && this.isGrounded && !this.isSwimming)
             {
                 this._stepTimer += delta
-                const stepInterval = this.isSprinting ? 0.25 : 0.42
+                const stepInterval = this.isSprinting ? 0.23 : 0.40
                 if(this._stepTimer >= stepInterval)
                 {
                     this._stepTimer = 0
-                    if(this.isSprinting)
-                        this.proceduralSound.playRunStep()
+                    this._feetPos.set(translation.x, currentBottomY, translation.z)
+
+                    if(isInShallowWater)
+                    {
+                        this.proceduralSound.playWaterStep(this.isSprinting)
+                        fx?.emitWaterSplash(this._feetPos, this.isSprinting ? 0.55 : 0.32)
+                    }
                     else
-                        this.proceduralSound.playWalkStep()
+                    {
+                        if(this.isSprinting)
+                            this.proceduralSound.playRunStep()
+                        else
+                            this.proceduralSound.playWalkStep()
+
+                        fx?.emitFootDust(this._feetPos, this.isSprinting)
+                    }
+                }
+            }
+            else if(this.isSwimming)
+            {
+                // Brazadas suaves y ondas en el agua mientras nada
+                this._swimStrokeTimer += delta
+                const strokeInterval = this.isMoving
+                    ? (this.isSprinting ? 0.30 : 0.44)
+                    : 1.15
+
+                if(this._swimStrokeTimer >= strokeInterval)
+                {
+                    this._swimStrokeTimer = 0
+                    this._feetPos.set(translation.x, waterY, translation.z)
+                    if(this.isMoving)
+                    {
+                        this.proceduralSound.playSwimStroke(this.isSprinting)
+                        fx?.emitWaterSplash(this._feetPos, this.isSprinting ? 0.48 : 0.32)
+                    }
+                    else
+                    {
+                        fx?.emitWaterRipple(this._feetPos, 0.9)
+                    }
                 }
             }
             else
             {
-                this._stepTimer = 0.38
+                this._stepTimer = 0.34
             }
 
             // Salto (solo fuera del modo nado)
@@ -475,16 +610,24 @@ export class PhysicsVehicle
                 this.isGrounded = false
                 this.justJumped = true
                 this.proceduralSound.playJumpSound()
+                this._feetPos.set(translation.x, currentBottomY, translation.z)
+                if(isInShallowWater)
+                    fx?.emitWaterSplash(this._feetPos, 0.7)
+                else
+                    fx?.emitFootDust(this._feetPos, true)
             }
         }
         else
         {
             this.isMoving = false
             this.isSprinting = false
+            this.isDashing = false
+            this._dashTimer = 0
             this._currentMoveSpeed = 0
         }
 
         const wasGrounded = this.isGrounded
+        const preLandVy = this.verticalVelocity
         this.justLanded = false
 
         // Gravedad o flotabilidad suave al nadar (mantiene la cápsula siguiendo el nivel del agua y baja al drenar)
@@ -540,7 +683,8 @@ export class PhysicsVehicle
                     if(otherBody.isDynamic())
                     {
                         otherBody.wakeUp()
-                        const pushSpeed = Math.max(2.5, this._currentMoveSpeed * 0.55)
+                        const dashBoost = this.isDashing ? 1.65 : 1.0
+                        const pushSpeed = Math.max(2.5, (this._currentMoveSpeed + (this.isDashing ? 10.0 : 0)) * 0.55) * dashBoost
                         const bodyMass = Math.max(0.08, otherBody.mass())
                         const pushDirX = this.forward.x
                         const pushDirZ = this.forward.z
@@ -550,16 +694,25 @@ export class PhysicsVehicle
                             y: 0.18 * pushSpeed * bodyMass,
                             z: pushDirZ * pushSpeed * bodyMass * 0.45
                         }, true)
+
+                        const lastFxTime = this._lastImpactFxTime.get(otherBody) || 0
+                        if(now - lastFxTime > 0.22 && (this._currentMoveSpeed > 2.0 || this.isDashing))
+                        {
+                            this._lastImpactFxTime.set(otherBody, now)
+                            const hitPos = otherBody.translation()
+                            const sparkIntensity = Math.min(1.25, (pushSpeed / 12.0))
+                            fx?.emitImpactSparks(hitPos, this.isDashing ? 0x38d9ff : 0xfff0c2, sparkIntensity)
+                        }
                     }
 
                     const onCollision = otherBody.userData?.object?.physical?.onCollision
-                    if(typeof onCollision === 'function' && this._currentMoveSpeed > 1.0)
+                    if(typeof onCollision === 'function' && (this._currentMoveSpeed > 1.0 || this.isDashing))
                     {
                         const lastTime = this._lastCollisionSoundTime.get(otherBody) || 0
                         if(now - lastTime > 0.25)
                         {
                             this._lastCollisionSoundTime.set(otherBody, now)
-                            onCollision(this._currentMoveSpeed, otherBody.translation())
+                            onCollision(Math.max(this._currentMoveSpeed, this.isDashing ? 16.0 : 0), otherBody.translation())
                         }
                     }
                 }
@@ -581,7 +734,18 @@ export class PhysicsVehicle
         if(!wasGrounded && this.isGrounded)
         {
             this.justLanded = true
-            this.proceduralSound.playLandSound()
+            const impactIntensity = Math.min(1.3, Math.max(0.45, Math.abs(preLandVy) / 11.0))
+            this._feetPos.set(nextPos.x, nextPos.y - this.capsuleTotalHalf, nextPos.z)
+            if(isInShallowWater)
+            {
+                this.proceduralSound.playWaterSplash(impactIntensity)
+                fx?.emitWaterSplash(this._feetPos, impactIntensity)
+            }
+            else
+            {
+                this.proceduralSound.playLandSound()
+                fx?.emitLandingDust(this._feetPos, impactIntensity)
+            }
         }
 
         // Actualizar estado de contacto de ruedas dummy para compatibilidad

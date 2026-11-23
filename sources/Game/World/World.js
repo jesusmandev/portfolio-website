@@ -37,6 +37,7 @@ import { Windmill } from './Windmill.js'
 import { FlagsExhibition } from './FlagsExhibition.js'
 import { Skills } from './Skills.js'
 import { TextFreelancer } from './TextFreelancer.js'
+import { GameFeelFX } from './GameFeelFX.js'
 
 export class World
 {
@@ -68,6 +69,7 @@ export class World
             this.grass = new Grass()
             this.windLines = new WindLines()
             this.confetti = new Confetti()
+            this.gameFeelFX = new GameFeelFX()
             this.leaves = new Leaves()
             this.rain = new RainLines()
             this.lightnings = new Lightnings()

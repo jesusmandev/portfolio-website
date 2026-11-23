@@ -186,6 +186,8 @@ export class TextFreelancer
                             const pitchMod = 0.85 + (item.char.charCodeAt(0) % 7) * 0.05
                             const intensity = Math.min(Math.max(force / 8.0, 0.2), 1.0)
                             this.proceduralSound.playLetterImpactSound(intensity, pitchMod)
+                            if(object.physical?.body)
+                                this.game.world?.gameFeelFX?.emitImpactSparks(object.physical.body.translation(), 0xffda55, intensity)
                         }
                     }
                 }
@@ -242,10 +244,11 @@ export class TextFreelancer
                 const tz = (Math.random() - 0.5) * 3.5
                 body.applyTorqueImpulse({ x: tx, y: ty, z: tz }, true)
 
-                // Sonido de impacto
+                // Sonido de impacto y chispas doradas
                 const charCode = (clickedMesh.userData.char || 'F').charCodeAt(0)
                 const pitchMod = 0.85 + (charCode % 7) * 0.05
                 this.proceduralSound.playLetterImpactSound(0.9, pitchMod)
+                this.game.world?.gameFeelFX?.emitImpactSparks(body.translation(), 0xffda55, 1.0)
 
                 // Efecto visual de parpadeo blanco
                 if(clickedMesh.material)

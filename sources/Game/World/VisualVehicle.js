@@ -457,8 +457,9 @@ export class VisualVehicle
             physicalVehicle.isGrounded && !physicalVehicle.isSwimming
         )
 
-        // Estelas al correr rápido (solo en tierra)
-        const trailAlpha = physicalVehicle.isMoving && physicalVehicle.isSprinting && physicalVehicle.isGrounded && !physicalVehicle.isSwimming ? 1 : 0
+        // Estelas al correr rápido o durante el Dash (incluye Air-Dash)
+        const showTrail = physicalVehicle.isDashing || (physicalVehicle.isMoving && physicalVehicle.isSprinting && physicalVehicle.isGrounded && !physicalVehicle.isSwimming)
+        const trailAlpha = showTrail ? (physicalVehicle.isDashing ? 1.0 : 0.78) : 0
         this.boostTrails.leftReference.getWorldPosition(this.boostTrails.left.position)
         this.boostTrails.left.alpha = trailAlpha
         this.boostTrails.rightReference.getWorldPosition(this.boostTrails.right.position)
