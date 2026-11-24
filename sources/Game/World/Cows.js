@@ -47,6 +47,8 @@ export class Cows
 
         this._raycaster = new THREE.Raycaster()
         this._mouse = new THREE.Vector2()
+        this._upAxis = new THREE.Vector3(0, 1, 0)
+        this._tempQuat = new THREE.Quaternion()
         this._tempPos = new THREE.Vector3()
         this._projPos = new THREE.Vector3()
 
@@ -374,6 +376,31 @@ export class Cows
                     actions[key] = mixer.clipAction(clip)
             }
 
+            // Colisionador sólido cinemático (solo activo cuando el jugador está a < 26m -> 0 lag)
+            // Altura total 2.1m (> autostep 1.1m) y desplazado +0.45m hacia adelante para cubrir cabeza y cuerpo
+            const colX = startPos.x + Math.sin(rotY) * 0.45
+            const colZ = startPos.z + Math.cos(rotY) * 0.45
+            const rotQuat = new THREE.Quaternion().setFromAxisAngle(this._upAxis, rotY)
+            const physicalObj = this.game.objects.add(
+                null,
+                {
+                    type: 'kinematicPositionBased',
+                    position: new THREE.Vector3(colX, groundY + 1.05, colZ),
+                    rotation: rotQuat,
+                    friction: 0.1,
+                    restitution: 0.1,
+                    canSleep: false,
+                    enabled: false,
+                    colliders: [
+                        {
+                            shape: 'cuboid',
+                            parameters: [ 0.62, 1.05, 1.45 ],
+                            category: 'object'
+                        }
+                    ]
+                }
+            )
+
             const waypoint = this._pickMapWideWaypoint(startPos.x, startPos.z)
 
             const cow = {
@@ -381,6 +408,9 @@ export class Cows
                 aggressive: seed.aggressive,
                 model,
                 shadowMesh,
+                physicalObj,
+                body: physicalObj?.physical?.body || null,
+                colliderActive: false,
                 mixer,
                 actions,
                 currentAction: null,
@@ -1231,6 +1261,43 @@ export class Cows
                     cow.shadowMesh.rotation.y = cow.rotY
                 }
             }
+
+            // Sincronizar colisionador sólido solo si el jugador está cerca (< 26m) y no está en plena huida automática
+            if(cow.body)
+            {
+                const shouldCollide = cow.state !== 'chase' && (cow.colliderActive ? distToPlayer < 28 : distToPlayer < 26)
+                if(shouldCollide)
+                {
+                    const colPos = {
+                        x: cow.x + Math.sin(cow.rotY) * 0.45,
+                        y: cow.y + 1.05,
+                        z: cow.z + Math.cos(cow.rotY) * 0.45
+                    }
+                    this._tempQuat.setFromAxisAngle(this._upAxis, cow.rotY)
+                    const colRot = {
+                        x: this._tempQuat.x,
+                        y: this._tempQuat.y,
+                        z: this._tempQuat.z,
+                        w: this._tempQuat.w
+                    }
+
+                    if(!cow.colliderActive)
+                    {
+                        cow.colliderActive = true
+                        cow.body.setTranslation(colPos, false)
+                        cow.body.setRotation(colRot, false)
+                        cow.body.setEnabled(true)
+                    }
+
+                    cow.body.setNextKinematicTranslation(colPos)
+                    cow.body.setNextKinematicRotation(colRot)
+                }
+                else if(cow.colliderActive)
+                {
+                    cow.colliderActive = false
+                    cow.body.setEnabled(false)
+                }
+            }
         }
     }
 
@@ -1254,6 +1321,8 @@ export class Cows
                 this.game.scene.remove(cow.model)
             if(cow.shadowMesh)
                 this.game.scene.remove(cow.shadowMesh)
+            if(cow.physicalObj)
+                this.game.objects.disable(cow.physicalObj)
         }
 
         this._sharedMaterials.forEach((mat) => mat.dispose())

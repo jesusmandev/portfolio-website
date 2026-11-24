@@ -79,30 +79,44 @@ export class Statue
                 return
 
             const model = rawModel.scene.clone()
+            model.updateMatrixWorld(true)
 
             const box = new THREE.Box3().setFromObject(model)
             const size = box.getSize(new THREE.Vector3())
             const center = box.getCenter(new THREE.Vector3())
 
-            // Align base to Y = 0 and center X/Z
-            model.position.set(-center.x, -box.min.y, -center.z)
-
-            // Scale to desired height
+            // Escalar primero y centrar aplicando el mismo scaleFactor para alinear exacto con el colisionador
             const scaleFactor = this.scale / (size.y || 1)
             model.scale.setScalar(scaleFactor)
+            model.position.set(
+                -center.x * scaleFactor,
+                -box.min.y * scaleFactor,
+                -center.z * scaleFactor
+            )
+            model.updateMatrixWorld(true)
 
-            this.scaledSize = size.clone().multiplyScalar(scaleFactor)
+            const localTotalBox = new THREE.Box3().setFromObject(model)
+            this.scaledSize = localTotalBox.getSize(new THREE.Vector3())
 
+            // Extraer las cajas exactas de cada sub-malla (pedestal + estatua) en espacio local del grupo
+            const partBoxes = []
             model.traverse((child) =>
             {
                 if(child.isMesh)
                 {
                     child.castShadow = true
                     child.receiveShadow = true
+                    const childBox = new THREE.Box3().setFromObject(child)
+                    if(!childBox.isEmpty())
+                        partBoxes.push(childBox)
                 }
             })
 
             this.group.add(model)
+            this.group.updateMatrixWorld(true)
+
+            // Reconstruir los colisionadores físicos exactamente con las dimensiones reales del GLB cargado
+            this.createPhysics(partBoxes, localTotalBox)
         }
 
         const cachedModel = this.game.resources?.statueModel
@@ -131,13 +145,68 @@ export class Statue
         }
     }
 
-    createPhysics()
+    createPhysics(partBoxes = null, totalBox = null)
     {
-        // Add solid physical collider with category: 'object' so the player cannot pass through
-        const halfHeight = 2.5
-        const halfX = Math.max(1.5, (this.scaledSize?.x || 3.0) * 0.42)
-        const halfZ = Math.max(1.5, (this.scaledSize?.z || 3.0) * 0.42)
-        const radius = Math.max(1.5, Math.max(halfX, halfZ))
+        // Desactivar colisionador provisional previo si ya existe antes de crear el exacto
+        if(this.physicalObject)
+        {
+            this.game.objects.disable(this.physicalObject)
+            this.physicalObject = null
+        }
+
+        const colliders = []
+
+        if(partBoxes && partBoxes.length > 0 && totalBox)
+        {
+            const totalSize = totalBox.getSize(new THREE.Vector3())
+            const totalCenter = totalBox.getCenter(new THREE.Vector3())
+            const fullHalfY = Math.max(2.6, totalSize.y * 0.5)
+
+            for(const b of partBoxes)
+            {
+                const s = b.getSize(new THREE.Vector3())
+                const c = b.getCenter(new THREE.Vector3())
+                const hx = Math.max(0.6, s.x * 0.48)
+                const hz = Math.max(0.6, s.z * 0.48)
+                // Garantizar altura mínima > autostep (1.1m) desde y=0 para que el personaje no trepe ni traspase el pedestal
+                const topY = Math.max(b.max.y, 2.4)
+                const bottomY = Math.min(b.min.y, 0.0)
+                const hy = Math.max(1.2, (topY - bottomY) * 0.5)
+                const cy = bottomY + hy
+
+                colliders.push({
+                    shape: 'cuboid',
+                    parameters: [ hx, hy, hz ],
+                    position: { x: c.x, y: cy, z: c.z },
+                    category: 'object'
+                })
+            }
+
+            // Núcleo sólido central de altura completa para blindar contra cualquier ángulo o salto
+            colliders.push({
+                shape: 'cuboid',
+                parameters: [
+                    Math.max(1.2, totalSize.x * 0.44),
+                    fullHalfY,
+                    Math.max(1.2, totalSize.z * 0.44)
+                ],
+                position: { x: totalCenter.x, y: fullHalfY, z: totalCenter.z },
+                category: 'object'
+            })
+        }
+        else
+        {
+            // Colisionador sólido provisional mientras termina de cargar estatua-v1.glb en segundo plano
+            const halfHeight = 3.2
+            colliders.push({
+                shape: 'cuboid',
+                parameters: [ 2.4, halfHeight, 2.0 ],
+                position: { x: 0, y: halfHeight, z: 0 },
+                category: 'object'
+            })
+        }
+
+        const rotQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY)
 
         this.physicalObject = this.game.objects.add(
             null,
@@ -146,24 +215,13 @@ export class Statue
                 category: 'object',
                 position: {
                     x: this.position.x,
-                    y: this.position.y + halfHeight,
+                    y: this.position.y,
                     z: this.position.z
                 },
-                rotation: this.group.quaternion,
+                rotation: rotQuat,
                 friction: 0.6,
                 restitution: 0.05,
-                colliders: [
-                    {
-                        shape: 'cuboid',
-                        parameters: [ halfX, halfHeight, halfZ ],
-                        category: 'object'
-                    },
-                    {
-                        shape: 'cylinder',
-                        parameters: [ halfHeight, radius ],
-                        category: 'object'
-                    }
-                ]
+                colliders
             }
         )
     }
