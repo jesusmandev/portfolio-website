@@ -51,6 +51,11 @@ export class Cows
         this._tempQuat = new THREE.Quaternion()
         this._tempPos = new THREE.Vector3()
         this._projPos = new THREE.Vector3()
+        this._mooPos = new THREE.Vector3()
+        this._bellPos = new THREE.Vector3()
+        this._eatPos = new THREE.Vector3()
+        this._bellStarted = false
+        this._eatStarted = false
 
         this._buildHeightLookup()
         this._defineExclusions()
@@ -67,6 +72,50 @@ export class Cows
     _registerSounds()
     {
         this.sounds = {}
+
+        // 1. Vaca mugiendo (one-shot espacial 3D)
+        this.sounds.cowMoo = this.game.audio.register({
+            group: 'cowMoo',
+            path: 'audios/vaca/vaca1.mp3',
+            autoplay: false,
+            loop: false,
+            preload: false,
+            volume: 0.75,
+            antiSpam: 1.4,
+            positions: this._mooPos,
+            distanceFade: 42,
+            onPlay: (item, pos, vol = 0.75, rate = 1.0) =>
+            {
+                if(pos)
+                    this._mooPos.copy(pos)
+                item.volume = vol
+                item.rate = rate
+            }
+        })
+
+        // 2. Campana de vaca (loop espacial 3D que suena al caminar / galopar cerca del jugador)
+        this.sounds.cowBell = this.game.audio.register({
+            group: 'cowBell',
+            path: 'audios/vaca/vaca2.mp3',
+            autoplay: false,
+            loop: true,
+            preload: false,
+            volume: 0,
+            positions: this._bellPos,
+            distanceFade: 28
+        })
+
+        // 3. Vaca comiendo césped (loop espacial 3D que suena cuando una vaca cercana está pastando)
+        this.sounds.cowEat = this.game.audio.register({
+            group: 'cowEat',
+            path: 'audios/vaca/vaca3.mp3',
+            autoplay: false,
+            loop: true,
+            preload: false,
+            volume: 0,
+            positions: this._eatPos,
+            distanceFade: 20
+        })
 
         // Mismo grito del tornado (AltarArea.js)
         this.sounds.maleScream = this.game.audio.register({
@@ -534,12 +583,103 @@ export class Cows
             return
 
         const dist = Math.hypot(cow.x - playerPos.x, cow.z - playerPos.z)
-        const maxHearDist = force ? 55 : 30
+        const maxHearDist = force ? 50 : 34
         if(dist > maxHearDist)
             return
 
+        if(this.sounds?.cowMoo && this.game.audio?.initiated && !this.game.audio.mute?.active)
+        {
+            this._tempPos.set(cow.x, cow.y + 1.4, cow.z)
+            const vol = force ? 0.92 : 0.65
+            const rate = Math.max(0.82, Math.min(1.18, cow.pitch || 1.0))
+            if(force)
+                this.sounds.cowMoo.lastPlay = -Infinity
+            this.sounds.cowMoo.play(this._tempPos, vol, rate)
+            return
+        }
+
         const attenuation = Math.max(0.12, 1 - dist / maxHearDist)
         this.proceduralSound.playCowMoo(attenuation * (force ? 0.95 : 0.55), cow.pitch)
+    }
+
+    _updateAmbientCowSounds(delta, playerPos)
+    {
+        if(!playerPos || !this.game.audio?.initiated || this.game.audio.mute?.active)
+            return
+
+        let closestMovingCow = null
+        let closestMovingDist = 28
+        let closestEatingCow = null
+        let closestEatingDist = 20
+
+        for(const cow of this.cows)
+        {
+            const d = Math.hypot(cow.x - playerPos.x, cow.z - playerPos.z)
+            if((cow.state === 'walk' || cow.state === 'chase' || cow.state === 'flee') && d < closestMovingDist)
+            {
+                closestMovingDist = d
+                closestMovingCow = cow
+            }
+            if(cow.state === 'eat' && d < closestEatingDist)
+            {
+                closestEatingDist = d
+                closestEatingCow = cow
+            }
+        }
+
+        // Sonido de campana (vaca2.mp3) al caminar / perseguir
+        if(this.sounds?.cowBell)
+        {
+            const bell = this.sounds.cowBell
+            if(closestMovingCow)
+            {
+                this._bellPos.set(closestMovingCow.x, closestMovingCow.y + 1.2, closestMovingCow.z)
+                const isFast = closestMovingCow.state === 'chase' || closestMovingCow.state === 'flee'
+                const targetVol = isFast ? 0.55 : 0.34
+                const targetRate = isFast ? 1.25 : 0.96
+
+                if(!this._bellStarted && closestMovingDist < 26)
+                {
+                    this._bellStarted = true
+                    bell.play()
+                }
+                bell.volume += (targetVol - bell.volume) * Math.min(1, delta * 4.5)
+                bell.rate += (targetRate - bell.rate) * Math.min(1, delta * 5.0)
+            }
+            else
+            {
+                bell.volume += (0 - bell.volume) * Math.min(1, delta * 4.0)
+                if(bell.volume < 0.005)
+                    bell.volume = 0
+            }
+        }
+
+        // Sonido de vaca comiendo césped (vaca3.mp3)
+        if(this.sounds?.cowEat)
+        {
+            const eat = this.sounds.cowEat
+            if(closestEatingCow)
+            {
+                this._eatPos.set(
+                    closestEatingCow.x + Math.sin(closestEatingCow.rotY) * 1.3,
+                    closestEatingCow.y + 0.3,
+                    closestEatingCow.z + Math.cos(closestEatingCow.rotY) * 1.3
+                )
+                if(!this._eatStarted && closestEatingDist < 19)
+                {
+                    this._eatStarted = true
+                    eat.play()
+                }
+                eat.volume += (0.62 - eat.volume) * Math.min(1, delta * 4.5)
+                eat.rate = closestEatingCow.pitch || 1.0
+            }
+            else
+            {
+                eat.volume += (0 - eat.volume) * Math.min(1, delta * 4.5)
+                if(eat.volume < 0.005)
+                    eat.volume = 0
+            }
+        }
     }
 
     _triggerScream()
@@ -1299,6 +1439,9 @@ export class Cows
                 }
             }
         }
+
+        // 3. ACTUALIZAR SONIDOS ESPACIALES REALES DE CAMPANA (vaca2) Y COMIENDO (vaca3)
+        this._updateAmbientCowSounds(delta, playerPos)
     }
 
     destroy()
@@ -1306,6 +1449,10 @@ export class Cows
         this._destroyed = true
         this._stopScream()
         this._hideThoughtBubble()
+
+        try { this.sounds?.cowMoo?.howl?.stop() } catch(_) {}
+        try { this.sounds?.cowBell?.howl?.stop() } catch(_) {}
+        try { this.sounds?.cowEat?.howl?.stop() } catch(_) {}
 
         if(this.game.physicalVehicle?.panicOverride)
             this.game.physicalVehicle.panicOverride.active = false
