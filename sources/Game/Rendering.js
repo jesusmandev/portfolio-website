@@ -37,11 +37,14 @@ export class Rendering
 
     async setRenderer()
     {
+        const isMobile = this.game.quality.level === 1
+
+        // En móvil forzamos WebGL2 para evitar la sobrecarga de WebGPU/Vulkan experimental en Chrome Android
         this.renderer = new THREE.WebGPURenderer({
             canvas: this.game.canvasElement,
             powerPreference: 'high-performance',
-            forceWebGL: false,
-            antialias: this.game.viewport.pixelRatio < 2
+            forceWebGL: isMobile,
+            antialias: !isMobile && this.game.viewport.pixelRatio < 2
         })
         this.renderer.setSize(this.game.viewport.width, this.game.viewport.height)
         this.renderer.setPixelRatio(this.game.viewport.pixelRatio)
@@ -71,8 +74,11 @@ export class Rendering
             .init()
     }
 
-    setPostprocessing()
+    _ensurePostprocessing()
     {
+        if(this.postProcessing)
+            return
+
         this.postProcessing = new THREE.RenderPipeline(this.renderer)
 
         const scenePass = pass(this.game.scene, this.game.view.camera)
@@ -85,26 +91,34 @@ export class Rendering
         this.bloomPass.smoothWidth.value = 1
 
         this.cheapDOFPass = cheapDOF(renderOutput(scenePass))
+        this.postProcessing.outputNode = this.cheapDOFPass.add(this.bloomPass)
+        this.postProcessing.needsUpdate = true
+    }
 
-        // Quality
+    setPostprocessing()
+    {
+        this.usePostProcessing = false
+
         const qualityChange = (level) =>
         {
             if(level === 0)
             {
+                this._ensurePostprocessing()
                 this.postProcessing.outputNode = this.cheapDOFPass.add(this.bloomPass)
+                this.postProcessing.needsUpdate = true
+                this.usePostProcessing = true
             }
-            else if(level === 1)
+            else
             {
-                this.postProcessing.outputNode = scenePassColor.add(this.bloomPass)
+                // En móvil / calidad Low renderizamos directo sin RenderPipeline ni Bloom (mucho más rápido en Chrome Android)
+                this.usePostProcessing = false
             }
-
-            this.postProcessing.needsUpdate = true
         }
         qualityChange(this.game.quality.level)
         this.game.quality.events.on('change', qualityChange)
 
         // Debug
-        if(this.game.debug.active)
+        if(this.game.debug.active && this.bloomPass && this.cheapDOFPass)
         {
             const bloomPanel = this.debugPanel.addFolder({
                 title: 'bloom',
@@ -170,8 +184,10 @@ export class Rendering
 
     async render()
     {
-        // this.renderer.render(this.game.scene, this.game.view.camera)
-        this.postProcessing.render()
+        if(this.usePostProcessing && this.postProcessing)
+            this.postProcessing.render()
+        else
+            this.renderer.render(this.game.scene, this.game.view.camera)
 
         if(this.stats)
             this.stats.update()

@@ -66,14 +66,22 @@ export class Options
         if(this.game.rendering.renderer.backend.isWebGLBackend)
         {
             const element = this.element.querySelector('.js-renderer')
-            element.classList.remove('is-success')
-            element.classList.add('is-danger')
-
+            const isMobile = this.game.quality.level === 1
             const text = element.querySelector('span:last-child')
-            text.textContent = 'WebGL'
-
             const tooltip = element.querySelector('.js-tooltip')
-            tooltip.innerHTML = /* html */`Tu navegador <strong>no soporta</strong> WebGPU (usando WebGL)`
+
+            if(isMobile)
+            {
+                text.textContent = 'WebGL2'
+                tooltip.innerHTML = /* html */`Modo <strong>WebGL2</strong> optimizado para móvil`
+            }
+            else
+            {
+                element.classList.remove('is-success')
+                element.classList.add('is-danger')
+                text.textContent = 'WebGL'
+                tooltip.innerHTML = /* html */`Tu navegador <strong>no soporta</strong> WebGPU (usando WebGL)`
+            }
         }
     }
 
