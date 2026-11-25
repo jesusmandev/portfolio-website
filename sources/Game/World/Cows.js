@@ -280,19 +280,18 @@ export class Cows
         return this._pickValidPointNear(0, 0, 12, 55)
     }
 
-    _getSharedMaterial(origMat)
+    _getSharedMaterial()
     {
-        const key = origMat?.name || 'cow_default'
-        if(this._sharedMaterials.has(key))
-            return this._sharedMaterials.get(key)
+        if(this._sharedCowMaterial)
+            return this._sharedCowMaterial
 
-        // Material Lambert ultraligero compartido entre las 4 vacas (sin compilación pesada por clon)
-        const col = origMat?.color ? origMat.color.clone() : new THREE.Color(0x553318)
-        const mat = new THREE.MeshLambertMaterial({
-            color: col
+        // Un único MeshLambertMaterial con vertexColors compartido entre las 4 vacas
+        // (1 solo shader + 1 solo draw call por vaca visible tras fusionar los 7 primitives de vaca.glb)
+        this._sharedCowMaterial = new THREE.MeshLambertMaterial({
+            color: 0xffffff,
+            vertexColors: true
         })
-        this._sharedMaterials.set(key, mat)
-        return mat
+        return this._sharedCowMaterial
     }
 
     _loadModel()
@@ -306,7 +305,7 @@ export class Cows
 
         const loader = this.game.resourcesLoader.getLoader('gltf')
         loader.load(
-            'animals/vaca.glb?cb=1',
+            'animals/vaca.glb?cb=2',
             (gltf) =>
             {
                 if(this._destroyed)
@@ -375,11 +374,12 @@ export class Cows
             model.rotation.y = rotY
 
             const cowClickTargets = []
+            const sharedMat = this._getSharedMaterial()
             model.traverse((child) =>
             {
                 if(child.isMesh)
                 {
-                    child.material = this._getSharedMaterial(child.material)
+                    child.material = sharedMat
                     child.castShadow = false
                     child.receiveShadow = false
                     child.frustumCulled = true
@@ -460,6 +460,11 @@ export class Cows
                 physicalObj,
                 body: physicalObj?.physical?.body || null,
                 colliderActive: false,
+                lastColX: Infinity,
+                lastColZ: Infinity,
+                lastColRotY: Infinity,
+                _colPos: { x: colX, y: groundY + 1.05, z: colZ },
+                _colRot: { x: 0, y: 0, z: 0, w: 1 },
                 mixer,
                 actions,
                 currentAction: null,
@@ -627,7 +632,7 @@ export class Cows
             }
         }
 
-        // Sonido de campana (vaca2.mp3) al caminar / perseguir
+        // Sonido de campana (vaca2.mp3) al caminar / perseguir (carga diferida al acercarse < 18m tras 3s jugando)
         if(this.sounds?.cowBell)
         {
             const bell = this.sounds.cowBell
@@ -638,15 +643,18 @@ export class Cows
                 const targetVol = isFast ? 0.55 : 0.34
                 const targetRate = isFast ? 1.25 : 0.96
 
-                if(!this._bellStarted && closestMovingDist < 26)
+                if(!this._bellStarted && closestMovingDist < 18 && this._wanderingElapsed > 3.0)
                 {
                     this._bellStarted = true
                     bell.play()
                 }
-                bell.volume += (targetVol - bell.volume) * Math.min(1, delta * 4.5)
-                bell.rate += (targetRate - bell.rate) * Math.min(1, delta * 5.0)
+                if(this._bellStarted)
+                {
+                    bell.volume += (targetVol - bell.volume) * Math.min(1, delta * 4.5)
+                    bell.rate += (targetRate - bell.rate) * Math.min(1, delta * 5.0)
+                }
             }
-            else
+            else if(this._bellStarted)
             {
                 bell.volume += (0 - bell.volume) * Math.min(1, delta * 4.0)
                 if(bell.volume < 0.005)
@@ -1197,9 +1205,10 @@ export class Cows
                 ? Math.hypot(cow.x - playerPos.x, cow.z - playerPos.z)
                 : 999
 
-            // Culling y throttling de animación para CERO lag
+            // Culling y throttling agresivo de animación para CERO lag en PC y móvil
             const isChasingNow = cow.state === 'chase'
-            const isVisible = isChasingNow || distToPlayer < 68
+            const maxVisibleDist = isMobile ? 38 : 52
+            const isVisible = isChasingNow || distToPlayer < maxVisibleDist
             cow.model.visible = isVisible
             if(cow.shadowMesh)
                 cow.shadowMesh.visible = isVisible
@@ -1208,7 +1217,7 @@ export class Cows
             {
                 const targetStep = isChasingNow
                     ? (isMobile ? 0.033 : 0.0)
-                    : (distToPlayer < 30 ? (isMobile ? 0.033 : 0.0) : 0.055)
+                    : (distToPlayer < 24 ? (isMobile ? 0.045 : 0.033) : 0.085)
 
                 cow.animAccum += delta
                 if(cow.animAccum >= targetStep)
@@ -1402,35 +1411,46 @@ export class Cows
                 }
             }
 
-            // Sincronizar colisionador sólido solo si el jugador está cerca (< 26m) y no está en plena huida automática
+            // Sincronizar colisionador sólido solo si el jugador está muy cerca (< 16m) y la vaca se movió
             if(cow.body)
             {
-                const shouldCollide = cow.state !== 'chase' && (cow.colliderActive ? distToPlayer < 28 : distToPlayer < 26)
+                const shouldCollide = cow.state !== 'chase' && (cow.colliderActive ? distToPlayer < 18 : distToPlayer < 16)
                 if(shouldCollide)
                 {
-                    const colPos = {
-                        x: cow.x + Math.sin(cow.rotY) * 0.45,
-                        y: cow.y + 1.05,
-                        z: cow.z + Math.cos(cow.rotY) * 0.45
-                    }
-                    this._tempQuat.setFromAxisAngle(this._upAxis, cow.rotY)
-                    const colRot = {
-                        x: this._tempQuat.x,
-                        y: this._tempQuat.y,
-                        z: this._tempQuat.z,
-                        w: this._tempQuat.w
-                    }
+                    const colX = cow.x + Math.sin(cow.rotY) * 0.45
+                    const colY = cow.y + 1.05
+                    const colZ = cow.z + Math.cos(cow.rotY) * 0.45
+                    const movedEnough = !cow.colliderActive ||
+                        Math.abs(colX - cow.lastColX) > 0.015 ||
+                        Math.abs(colZ - cow.lastColZ) > 0.015 ||
+                        Math.abs(cow.rotY - cow.lastColRotY) > 0.015
 
-                    if(!cow.colliderActive)
+                    if(movedEnough)
                     {
-                        cow.colliderActive = true
-                        cow.body.setTranslation(colPos, false)
-                        cow.body.setRotation(colRot, false)
-                        cow.body.setEnabled(true)
-                    }
+                        cow._colPos.x = colX
+                        cow._colPos.y = colY
+                        cow._colPos.z = colZ
 
-                    cow.body.setNextKinematicTranslation(colPos)
-                    cow.body.setNextKinematicRotation(colRot)
+                        this._tempQuat.setFromAxisAngle(this._upAxis, cow.rotY)
+                        cow._colRot.x = this._tempQuat.x
+                        cow._colRot.y = this._tempQuat.y
+                        cow._colRot.z = this._tempQuat.z
+                        cow._colRot.w = this._tempQuat.w
+
+                        if(!cow.colliderActive)
+                        {
+                            cow.colliderActive = true
+                            cow.body.setTranslation(cow._colPos, false)
+                            cow.body.setRotation(cow._colRot, false)
+                            cow.body.setEnabled(true)
+                        }
+
+                        cow.body.setNextKinematicTranslation(cow._colPos)
+                        cow.body.setNextKinematicRotation(cow._colRot)
+                        cow.lastColX = colX
+                        cow.lastColZ = colZ
+                        cow.lastColRotY = cow.rotY
+                    }
                 }
                 else if(cow.colliderActive)
                 {
@@ -1472,6 +1492,11 @@ export class Cows
                 this.game.objects.disable(cow.physicalObj)
         }
 
+        if(this._sharedCowMaterial)
+        {
+            this._sharedCowMaterial.dispose()
+            this._sharedCowMaterial = null
+        }
         this._sharedMaterials.forEach((mat) => mat.dispose())
         this._sharedMaterials.clear()
         if(this._shadowGeo) this._shadowGeo.dispose()
